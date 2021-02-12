@@ -1,0 +1,178 @@
+service: sf-shopping-list
+frameworkVersion: '2'
+
+provider:
+  name: aws
+  runtime: python3.8
+  lambdaHashingVersion: 20201221
+  stage: dev
+  environment:
+    DOMAIN_SUFFIX: k0mmsussert0d-shopping-list
+    DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}/index/*"
+
+  httpApi:
+    authorizers:
+      serviceAuthorizer:
+        identitySource: $request.header.Authorization
+        issuerUrl: 
+          Fn::Join:
+          - ''
+          - - 'https://cognito-idp.'
+            - '${opt:region, self:provider.region}'
+            - '.amazonaws.com/'
+            - Ref: serviceUserPool
+        audience:
+          - Ref: serviceUserPoolClient
+
+functions:
+  createList:
+    handler: lists.create
+    events:
+      - httpApi:
+          method: POST
+          path: /list
+          authorizer: serviceAuthorizer
+  getList:
+    handler: lists.get
+    events:
+      - httpApi:
+          method: GET
+          path: /list/{id}
+          authorizer: serviceAuthorizer
+  listLists:
+    handler: lists.get_all
+    events:
+      - httpApi:
+          method: GET
+          path: /list
+          authorizer: serviceAuthorizer
+  updateList:
+    handler: lists.update
+    events:
+      - httpApi:
+          method: PUT
+          path: /list/{id}
+          authorizer: serviceAuthorizer
+  deleteList:
+    handler: lists.delete
+    events:
+      - httpApi:
+          method: DELETE
+          path: /list/{id}
+          authorizer: serviceAuthorizer
+  getProfileInfo:
+    handler: user.get
+    events:
+      - httpApi:
+            method: GET
+            path: /user
+            authorizer: serviceAuthorizer
+  updateUserAvatar:
+    handler: user.update_avatar
+    events:
+      - httpApi:
+            method: PUT
+            path: /user/avatar
+            authorizer: serviceAuthorizer
+
+resources:
+  Resources:
+    HttpApi:
+      DependsOn: serviceUserPool
+
+    ListsDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+          -
+            AttributeName: user_id
+            AttributeType: S
+          -
+            AttributeName: created_at
+            AttributeType: N
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          -
+            IndexName: gsiUserLists
+            KeySchema:
+              -
+                AttributeName: user_id
+                KeyType: HASH
+              -
+                AttributeName: created_at
+                KeyType: RANGE
+            Projection:
+              ProjectionType: KEYS_ONLY
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+
+    serviceUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: service-user-pool-${opt:stage, self:provider.stage}-${self:provider.environment.DOMAIN_SUFFIX}
+        UsernameAttributes:
+          - email
+        AutoVerifiedAttributes:
+          - email
+    serviceUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: service-user-pool-client-${opt:stage, self:provider.stage}-${self:provider.environment.DOMAIN_SUFFIX}
+        AllowedOAuthFlows:
+          - implicit
+        AllowedOAuthFlowsUserPoolClient: true
+        AllowedOAuthScopes:
+          - phone
+          - email
+          - openid
+          - profile
+          - aws.cognito.signin.user.admin
+        UserPoolId:
+          Ref: serviceUserPool
+        CallbackURLs: 
+          - https://localhost:3000
+        ExplicitAuthFlows:
+          - ALLOW_USER_SRP_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+        GenerateSecret: false
+        SupportedIdentityProviders: 
+          - COGNITO
+    serviceUserPoolDomain:
+      Type: AWS::Cognito::UserPoolDomain 
+      Properties:
+        UserPoolId: 
+          Ref: serviceUserPool
+        Domain: service-user-pool-domain-${opt:stage, self:provider.stage}-${self:provider.environment.DOMAIN_SUFFIX}
+plugins:
+   - serverless-python-requirements
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+package:
+  exclude:
+    - node_modules/**
+    - venv/**
