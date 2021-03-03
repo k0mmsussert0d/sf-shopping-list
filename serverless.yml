@@ -9,6 +9,7 @@ provider:
   environment:
     DOMAIN_SUFFIX: k0mmsussert0d-shopping-list
     DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}
+    APP_URL: http://sf-shopping-list-dev-assets.s3-website-us-east-1.amazonaws.com
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -83,18 +84,19 @@ functions:
     handler: user.update_avatar
     events:
       - httpApi:
-            method: PUT
+            method: POST
             path: /user/avatar
             authorizer: serviceAuthorizer
 
 resources:
   Resources:
     HttpApi:
+      Type: 'AWS::ApiGatewayV2::Api'
       DependsOn: serviceUserPool
 
     ListsDynamoDbTable:
       Type: 'AWS::DynamoDB::Table'
-      DeletionPolicy: Retain
+      DeletionPolicy: Delete
       Properties:
         AttributeDefinitions:
           -
@@ -167,12 +169,16 @@ resources:
         UserPoolId: 
           Ref: serviceUserPool
         Domain: service-user-pool-domain-${opt:stage, self:provider.stage}-${self:provider.environment.DOMAIN_SUFFIX}
-plugins:
-   - serverless-python-requirements
-custom:
-  pythonRequirements:
-    dockerizePip: non-linux
 package:
   exclude:
     - node_modules/**
     - venv/**
+plugins:
+   - serverless-python-requirements
+   - serverless-finch
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+  client:
+    bucketName: sf-shopping-list-dev-assets
+    distributionFolder: assets
