@@ -1,0 +1,10 @@
+{
+  "auth": {
+    "sfshoppinglistfrontcb8a19b3": {
+      "service": "Cognito",
+      "providerPlugin": "awscloudformation",
+      "dependsOn": [],
+      "customAuth": false
+    }
+  }
+}
