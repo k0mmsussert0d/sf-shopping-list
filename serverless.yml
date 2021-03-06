@@ -140,6 +140,13 @@ resources:
           - email
         AutoVerifiedAttributes:
           - email
+        Schema:
+          - Name: email
+            Required: true
+            Mutable: true
+          - Name: nickname
+            Required: true
+            Mutable: true
     serviceUserPoolClient:
       Type: AWS::Cognito::UserPoolClient
       Properties:
