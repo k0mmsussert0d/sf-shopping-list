@@ -8,7 +8,9 @@ provider:
   stage: dev
   environment:
     DOMAIN_SUFFIX: k0mmsussert0d-shopping-list
-    DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}
+    RESOURCES_NAME: ${self:service}-${opt:stage, self:provider.stage}
+    DYNAMODB_MAIN_TABLE: ${self:provider.environment.RESOURCES_NAME}-main-table
+    DYNAMODB_USER_TO_LISTS_TABLE: ${self:provider.environment.RESOURCES_NAME}-user-to-lists-table
     APP_URL: http://sf-shopping-list-dev-assets.s3-website-us-east-1.amazonaws.com
   iamRoleStatements:
     - Effect: Allow
@@ -20,8 +22,10 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
       Resource:
-        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
-        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}/index/*"
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_MAIN_TABLE}"
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_USER_TO_LISTS_TABLE}"
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_MAIN_TABLE}/index/*"
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_USER_TO_LISTS_TABLE}/index/*"
 
   httpApi:
     authorizers:
@@ -130,8 +134,23 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
-        TableName: ${self:provider.environment.DYNAMODB_TABLE}
-
+        TableName: ${self:provider.environment.DYNAMODB_MAIN_TABLE}
+    UserToListsDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Delete
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: user_id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: user_id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMODB_USER_TO_LISTS_TABLE}
     serviceUserPool:
       Type: AWS::Cognito::UserPool
       Properties:
@@ -180,6 +199,7 @@ package:
   exclude:
     - node_modules/**
     - venv/**
+    - frontend/**
 plugins:
    - serverless-python-requirements
    - serverless-finch

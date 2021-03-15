@@ -14,9 +14,47 @@ dynamodb = boto3.resource('dynamodb')
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)  # TODO: parametrize
 
+l_table = dynamodb.Table(os.environ['DYNAMODB_MAIN_TABLE'])
+utl_table = dynamodb.Table(os.environ['DYNAMODB_USER_TO_LISTS_TABLE'])
+
+def add_or_update(user_id, list_id):
+    result = utl_table.get_item(
+        Key={
+            'user_id': user_id
+        }
+    )
+
+    if not 'Item' in result:
+        item = {
+            'user_id': user_id,
+            'lists': [list_id]
+        }
+        utl_table.put_item(
+            Item=item
+        )
+
+        return item
+    else:
+        lists = result['Item']['lists']
+        lists.append(list_id)
+        utl_table.update_item(
+            Key={
+                'user_id': user_id
+            },
+            UpdateExpression="set lists = :l",
+            ExpressionAttributeValues={
+                ':l': lists
+            },
+        )
+
+        return {
+            'user_id': user_id,
+            'lists': lists
+        }
+
+
 def create(event, context):
     logger.debug(event)
-    logger.debug(context)
 
     if event['isBase64Encoded']:
         body = base64.b64decode(event['body'])
@@ -27,15 +65,18 @@ def create(event, context):
     user_data = event['requestContext']['authorizer']['jwt']['claims']
 
     if 'name' not in data:
-        logging.error('No list name provided')
-        raise Exception('Could not create list')
+        return {
+            'statusCode': 400,
+            'body': json.dumps({
+                'status': 'error',
+                'reason': '"name" attribute has not been provided'
+            })
+        }
     items = data.get('items', [])
     guests = data.get('guests', [])
 
     item_id = ShortUUID().random(length=6)
     timestamp = int(time.time())
-
-    table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
 
     item = {
         'id': item_id,
@@ -46,7 +87,9 @@ def create(event, context):
         'guests': guests
     }
 
-    table.put_item(Item=item)
+    l_table.put_item(Item=item)
+
+    add_or_update(user_data['sub'], item_id)
 
     return {
         'statusCode': 200,
@@ -57,17 +100,16 @@ def get(event, context):
     logger.debug(event)
 
     user_data = event['requestContext']['authorizer']['jwt']['claims']
-
-    table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
-
-    result = table.get_item(
+    result = l_table.get_item(
         Key={
             'id': event['pathParameters']['id']
         }
     )
     logger.debug(result)
 
-    if result['Item']['user_id'] != user_data['sub'] and not user_data['sub'] in result['Item']['guests']:
+    if 'Item' not in result or \
+        (result['Item']['user_id'] != user_data['sub'] and \
+         not user_data['sub'] in result['Item']['guests']):
         return {
             'statusCode': 404,
             'body': 'You don\'t have access to this list or it doesn\'t exist'
@@ -82,15 +124,33 @@ def get_all(event, context):
     logger.debug(event)
 
     user_data = event['requestContext']['authorizer']['jwt']['claims']
-
-    table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
-
-    results = table.scan(
-        FilterExpression=Attr('guests').contains(user_data['sub'])
+    user_lists = utl_table.get_item(
+        Key={
+            'user_id': user_data['sub']
+        }
     )
-    logger.debug(results)
+
+    if 'Item' not in user_lists:
+        return {
+            'statusCode': 200,
+            'body': []
+        }
+
+    res = []
+    for user_list in user_lists['Item']['lists']:
+        lists = l_table.get_item(
+            Key={
+                'id': user_list
+            }
+        )
+        if 'Item' not in lists:
+            logging.error(f'User has access to {user_list} list but it can\'t be found')
+        else:
+            res.append(lists['Item'])
+
+    logger.debug(res)
 
     return {
         'statusCode': 200,
-        'body': json.dumps(results['Items'], cls=DecimalEncoder)
+        'body': json.dumps(res,  cls=DecimalEncoder)
     }
