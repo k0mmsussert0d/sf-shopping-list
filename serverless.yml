@@ -11,6 +11,7 @@ provider:
     RESOURCES_NAME: ${self:service}-${opt:stage, self:provider.stage}
     DYNAMODB_MAIN_TABLE: ${self:provider.environment.RESOURCES_NAME}-main-table
     DYNAMODB_USER_TO_LISTS_TABLE: ${self:provider.environment.RESOURCES_NAME}-user-to-lists-table
+    DYNAMODB_LISTS_SHARE_TABLE: ${self:provider.environment.RESOURCES_NAME}-lists-share-table
     APP_URL: http://sf-shopping-list-dev-assets.s3-website-us-east-1.amazonaws.com
   iamRoleStatements:
     - Effect: Allow
@@ -24,8 +25,10 @@ provider:
       Resource:
         - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_MAIN_TABLE}"
         - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_USER_TO_LISTS_TABLE}"
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_LISTS_SHARE_TABLE}"
         - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_MAIN_TABLE}/index/*"
         - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_USER_TO_LISTS_TABLE}/index/*"
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_LISTS_SHARE_TABLE}/index/*"
 
   httpApi:
     authorizers:
@@ -77,6 +80,15 @@ functions:
           method: DELETE
           path: /list/{id}
           authorizer: serviceAuthorizer
+
+  shareList:
+    handler: share.share_list
+    events:
+      - httpApi:
+          method: POST
+          path: /list/{id}/share
+          authorizer: serviceAuthorizer
+
   getProfileInfo:
     handler: user.get
     events:
@@ -151,6 +163,24 @@ resources:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
         TableName: ${self:provider.environment.DYNAMODB_USER_TO_LISTS_TABLE}
+    ListsSharingDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        TimeToLiveSpecification:
+          Enabled: true
+          AttributeName: valid_until
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMODB_LISTS_SHARE_TABLE}
     serviceUserPool:
       Type: AWS::Cognito::UserPool
       Properties:
