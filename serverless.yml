@@ -88,6 +88,13 @@ functions:
           method: POST
           path: /list/{id}/share
           authorizer: serviceAuthorizer
+  acceptInvitation:
+    handler: share.accept_invitation
+    events:
+      - httpApi:
+          method: GET
+          path: /s/{code}
+          authorizer: serviceAuthorizer
 
   getProfileInfo:
     handler: user.get
