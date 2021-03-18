@@ -154,3 +154,109 @@ def get_all(event, context):
         'statusCode': 200,
         'body': json.dumps(res,  cls=DecimalEncoder)
     }
+
+def update(event, context):
+    logger.debug(event)
+
+    user_data = event['requestContext']['authorizer']['jwt']['claims']
+    list_id = event['pathParameters']['id']
+    if event['isBase64Encoded']:
+        body = base64.b64decode(event['body'])
+    else:
+        body = event['body']
+    data = json.loads(body)
+    if not isinstance(data, list) or not all([isinstance(x, str) for x in data]):
+        return {
+            'statusCode': 401,
+            'body': json.dumps({
+                'status': 'error',
+                'reason': 'Provide updated items list as a request body'
+            })
+        }
+
+    result = l_table.get_item(
+        Key={
+            'id': list_id
+        }
+    )
+
+    if 'Item' not in result:
+        return {
+            'statusCode': 404,
+            'body': json.dumps({
+                'status': 'error',
+                'reason': 'List does not exist'
+            })
+        }
+
+    if result['Item']['user_id'] != user_data['sub'] and user_data['sub'] not in result['Item']['guests']:
+        return {
+            'statusCode': 401,
+            'body': json.dumps({
+                'status': 'error',
+                'reason': 'You don\'t have access to this list'
+            })
+        }
+    
+    l_table.update_item(
+        Key={
+            'id': list_id
+        },
+        UpdateExpression='SET #i = :i',
+        ExpressionAttributeNames={
+            '#i': 'items'
+        },
+        ExpressionAttributeValues={
+            ':i': data
+        }
+    )
+
+    result = l_table.get_item(
+        Key={
+            'id': list_id
+        }
+    )
+
+    return {
+        'statusCode': 200,
+        'body': json.dumps(result['Item'], cls=DecimalEncoder)
+    }
+
+def delete(event, context):
+    user_data = event['requestContext']['authorizer']['jwt']['claims']
+    list_id = event['pathParameters']['id']
+
+    result = l_table.get_item(
+        Key={
+            'id': list_id
+        }
+    )
+
+    if 'Item' not in result:
+        return {
+            'statusCode': 404,
+            'body': json.dumps({
+                'status': 'error',
+                'reason': 'List does not exist'
+            })
+        }
+
+    if result['Item']['user_id'] != user_data['sub']:
+        return {
+            'statusCode': 401,
+            'body': json.dumps({
+                'status': 'error',
+                'reason': 'You don\'t have access to this list'
+            })
+        }
+
+    l_table.delete_item(
+        Key={
+            'id': list_id
+        }
+    )
+
+    return {
+        'statusCode': 204,
+        'body': None
+    }
