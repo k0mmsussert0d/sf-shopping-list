@@ -46,35 +46,35 @@ provider:
 
 functions:
   createList:
-    handler: lists.create
+    handler: shoppinglist.lists.create
     events:
       - httpApi:
           method: POST
           path: /list
           authorizer: serviceAuthorizer
   getList:
-    handler: lists.get
+    handler: shoppinglist.lists.get
     events:
       - httpApi:
           method: GET
           path: /list/{id}
           authorizer: serviceAuthorizer
   listLists:
-    handler: lists.get_all
+    handler: shoppinglist.lists.get_all
     events:
       - httpApi:
           method: GET
           path: /list
           authorizer: serviceAuthorizer
   updateList:
-    handler: lists.update
+    handler: shoppinglist.lists.update
     events:
       - httpApi:
           method: PUT
           path: /list/{id}
           authorizer: serviceAuthorizer
   deleteList:
-    handler: lists.delete
+    handler: shoppinglist.lists.delete
     events:
       - httpApi:
           method: DELETE
@@ -82,14 +82,14 @@ functions:
           authorizer: serviceAuthorizer
 
   shareList:
-    handler: share.share_list
+    handler: shoppinglist.share.share_list
     events:
       - httpApi:
           method: POST
           path: /list/{id}/share
           authorizer: serviceAuthorizer
   acceptInvitation:
-    handler: share.accept_invitation
+    handler: shoppinglist.share.accept_invitation
     events:
       - httpApi:
           method: GET
@@ -97,14 +97,14 @@ functions:
           authorizer: serviceAuthorizer
 
   getProfileInfo:
-    handler: user.get
+    handler: shoppinglist.user.get
     events:
       - httpApi:
             method: GET
             path: /user
             authorizer: serviceAuthorizer
   updateUserAvatar:
-    handler: user.update_avatar
+    handler: shoppinglist.user.update_avatar
     events:
       - httpApi:
             method: POST
