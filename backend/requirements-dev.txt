@@ -1,0 +1,4 @@
+boto3==1.17.31
+shortuuid==1.0.1
+pytest==6.2.2
+pytest-serverless==0.13.3

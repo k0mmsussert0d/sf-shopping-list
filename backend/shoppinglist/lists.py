@@ -8,7 +8,7 @@ from shortuuid import ShortUUID
 import boto3
 from boto3.dynamodb.conditions import Attr
 
-from utils import DecimalEncoder
+from .utils import DecimalEncoder
 
 dynamodb = boto3.resource('dynamodb')
 logger = logging.getLogger()
