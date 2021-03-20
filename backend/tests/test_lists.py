@@ -98,7 +98,6 @@ def test_delete_list_not_owned_list_is_not_deleted(dynamodb, list_details):
     )
     assert 'Item' in result_item, 'List has been delete, even though it shouldn\'t be'
 
-
 def test_delete_list_owned_list_is_deleted(dynamodb, list_details):
     from shoppinglist.lists import delete
 
@@ -115,7 +114,7 @@ def test_delete_list_owned_list_is_deleted(dynamodb, list_details):
     boto3.resource('dynamodb').Table(os.environ['DYNAMODB_USER_TO_LISTS_TABLE']).put_item(
         Item={
             'user_id': list_details.get('user_id'),
-            'lists': ['FOOBAR'],
+            'lists': {'FOOBAR'},
         }
     )
 

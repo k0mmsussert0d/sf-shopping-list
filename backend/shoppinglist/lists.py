@@ -17,40 +17,55 @@ logger.setLevel(logging.DEBUG)  # TODO: parametrize
 l_table = dynamodb.Table(os.environ['DYNAMODB_MAIN_TABLE'])
 utl_table = dynamodb.Table(os.environ['DYNAMODB_USER_TO_LISTS_TABLE'])
 
-def add_or_update(user_id, list_id):
-    result = utl_table.get_item(
+def _add_to_users_lists(user_id, list_id):
+    """
+    Modifies UserToLists table by appending new list_id to set of lists user has access to.
+    If such an entry does not exists in UserToLists table yet, it's being created.
+
+    user_id: user OpenID identifier ('sub' in jwt claims)
+    list_id: id of the list to grant access to
+
+    return: {
+        user_id: copy of user_id param
+        lists: set of lists user has currently access to
+    }
+    """
+    lists = utl_table.update_item(
         Key={
             'user_id': user_id
+        },
+        UpdateExpression='ADD lists :l',
+        ExpressionAttributeValues={
+            ':l': {list_id}
+        },
+        ReturnValues='ALL_NEW'
+    )
+    return {
+        'user_id': user_id,
+        'lists': lists
+    }
+
+def _delete_from_user_lists(user_id, list_id):
+    """
+    Modifies UserToLists table by removing list_id from set of lists user has access to.
+
+    user_id: user OpenID identifier ('sub' in jwt claims)
+    list_id: id of the list to grant access to
+
+    return: {
+        user_id: copy of user_id param
+        lists: set of lists user has currently access to
+    }
+    """
+    utl_table.update_item(
+        Key={
+            'user_id': user_id
+        },
+        UpdateExpression='DELETE lists :l',
+        ExpressionAttributeValues={
+            ':l': {list_id}
         }
     )
-
-    if not 'Item' in result:
-        item = {
-            'user_id': user_id,
-            'lists': [list_id]
-        }
-        utl_table.put_item(
-            Item=item
-        )
-
-        return item
-    else:
-        lists = result['Item']['lists']
-        lists.append(list_id)
-        utl_table.update_item(
-            Key={
-                'user_id': user_id
-            },
-            UpdateExpression="set lists = :l",
-            ExpressionAttributeValues={
-                ':l': lists
-            },
-        )
-
-        return {
-            'user_id': user_id,
-            'lists': lists
-        }
 
 
 def create(event, context):
@@ -89,7 +104,7 @@ def create(event, context):
 
     l_table.put_item(Item=item)
 
-    add_or_update(user_data['sub'], item_id)
+    _add_to_users_lists(user_data['sub'], item_id)
 
     return {
         'statusCode': 200,
@@ -250,11 +265,14 @@ def delete(event, context):
             })
         }
 
+    # TODO: move to "deleted" table instead of deleting for real
     l_table.delete_item(
         Key={
             'id': list_id
         }
     )
+
+    _delete_from_user_lists(user_data['sub'], list_id)
 
     return {
         'statusCode': 204,
