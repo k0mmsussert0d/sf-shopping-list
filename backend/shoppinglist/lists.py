@@ -273,6 +273,8 @@ def delete(event, context):
     )
 
     _delete_from_user_lists(user_data['sub'], list_id)
+    for guest in result['Item'].get('guests', []):
+        _delete_from_user_lists(guest, list_id)
 
     return {
         'statusCode': 204,

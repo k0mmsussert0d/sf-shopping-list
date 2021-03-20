@@ -1,11 +1,12 @@
 import os
+import time
 
 import json
 import pytest
 import boto3
 
 from tests.setup import dynamodb, aws_credentials, environment
-import time
+import uuid
 
 
 @pytest.fixture(scope='function')
@@ -17,8 +18,12 @@ def list_details():
     }
 
 @pytest.fixture(scope='function')
-def list_expected_details(list_details):
-    return ['id', 'created_at', 'guests']
+def list_expected_details():
+    return {
+        'id': 'FOOBAR',
+        'created_at': 1616240181,
+        'guests': []
+    }
 
 def test_create_list_new_list_is_added(dynamodb, environment, list_details, list_expected_details):
     from shoppinglist.lists import create
@@ -63,14 +68,12 @@ def test_create_list_new_list_is_added(dynamodb, environment, list_details, list
     assert 'Item' in user_to_table_item, 'Item insertion did not update user_to_lists table'
     assert result_item['Item']['id'] in user_to_table_item['Item']['lists'], 'New list has not been added to user\'s list of lists'
 
-def test_delete_list_not_owned_list_is_not_deleted(dynamodb, list_details):
+def test_delete_list_not_owned_list_is_not_deleted(dynamodb, list_details, list_expected_details):
     from shoppinglist.lists import delete
 
     target_list_details = {
         **list_details,
-        'id': 'FOOBAR',
-        'created_at': int(time.time()),
-        'guests': [],
+        **list_expected_details
     }
     target_list_details['user_id'] = 'other_user_guid'
     boto3.resource('dynamodb').Table(os.environ['DYNAMODB_MAIN_TABLE']).put_item(
@@ -98,15 +101,16 @@ def test_delete_list_not_owned_list_is_not_deleted(dynamodb, list_details):
     )
     assert 'Item' in result_item, 'List has been delete, even though it shouldn\'t be'
 
-def test_delete_list_owned_list_is_deleted(dynamodb, list_details):
+def test_delete_list_owned_list_is_deleted(dynamodb, list_details, list_expected_details):
     from shoppinglist.lists import delete
 
     list_details = {
         **list_details,
-        'id': 'FOOBAR',
-        'created_at': int(time.time()),
-        'guests': [],
+        **list_expected_details
     }
+
+    guest_user_uuid = str(uuid.uuid4())
+    list_details['guests'].append(guest_user_uuid)
 
     boto3.resource('dynamodb').Table(os.environ['DYNAMODB_MAIN_TABLE']).put_item(
         Item=list_details
@@ -114,7 +118,13 @@ def test_delete_list_owned_list_is_deleted(dynamodb, list_details):
     boto3.resource('dynamodb').Table(os.environ['DYNAMODB_USER_TO_LISTS_TABLE']).put_item(
         Item={
             'user_id': list_details.get('user_id'),
-            'lists': {'FOOBAR'},
+            'lists': {list_details.get('id')},
+        }
+    )
+    boto3.resource('dynamodb').Table(os.environ['DYNAMODB_USER_TO_LISTS_TABLE']).put_item(
+        Item={
+            'user_id': guest_user_uuid,
+            'lists': {list_details.get('id')},
         }
     )
 
@@ -137,11 +147,17 @@ def test_delete_list_owned_list_is_deleted(dynamodb, list_details):
             'id': list_details.get('id')
         }
     )
-    access_item = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_USER_TO_LISTS_TABLE']).get_item(
+    owner_access_list = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_USER_TO_LISTS_TABLE']).get_item(
         Key={
             'user_id': list_details.get('user_id')
         }
     )
+    guest_access_list = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_USER_TO_LISTS_TABLE']).get_item(
+        Key={
+            'user_id': guest_user_uuid
+        }
+    )
 
     assert 'Item' not in list_item, 'List item has not been removed'
-    assert list_details['id'] not in access_item['Item']['lists'], 'List of lists user has access to has not been updated after list deletion'
+    assert list_details['id'] not in owner_access_list['Item']['lists'], 'List of lists owner has access to has not been updated after list deletion'
+    assert list_details['id'] not in guest_access_list['Item']['lists'], 'List of lists guest has access to has not been updated after list deletion'
