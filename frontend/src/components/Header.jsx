@@ -1,10 +1,18 @@
 import React, {useState} from 'react';
 import { Navbar, Button } from 'rbx';
+import {useAppContext} from '../utils/contextLib';
+import {Auth} from 'aws-amplify';
+
 
 
 const Header = () => {
 
-  const [loggedIn, setLoggedIn] = useState(false);
+  const {isAuthenticated, userHasAuthenticated} = useAppContext();
+
+  const performLogout = async () => {
+    await Auth.signOut();
+    userHasAuthenticated(false);
+  };
 
   const signedOutOptions = () => {
     return (
@@ -35,7 +43,7 @@ const Header = () => {
         <Navbar.Segment align="end">
           <Navbar.Item>
             <Button.Group>
-              <Button color="primary">
+              <Button color="primary" onClick={performLogout}>
                 <strong>Log out</strong>
               </Button>
             </Button.Group>
@@ -59,7 +67,7 @@ const Header = () => {
         </Navbar.Item>
         <Navbar.Burger />
       </Navbar.Brand>
-      {signedInOptions()}
+      {isAuthenticated ? signedInOptions() : signedOutOptions()}
     </Navbar>
   );
 };
