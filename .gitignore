@@ -25,5 +25,5 @@ node_modules
 .vscode/
 .idea/
 
-frontend/
+# frontend/
 __pycache__/
