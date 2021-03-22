@@ -12,6 +12,7 @@ import LoginView from './views/LoginView';
 import 'rbx/index.css';
 import { AppContext } from './utils/contextLib';
 import {Auth} from 'aws-amplify';
+import SingupView from './views/SingupView';
 
 
 function App() {
@@ -43,6 +44,9 @@ function App() {
           <Generic as='div' className='main-wrapper'>
             <Route path='/login'>
               <LoginView />
+            </Route>
+            <Route path='/signup'>
+              <SingupView />
             </Route>
             <Route path='/lists'></Route>
             <Route path='/profile'></Route>
