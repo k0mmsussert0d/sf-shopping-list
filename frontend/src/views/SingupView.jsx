@@ -9,11 +9,11 @@ const SingupView = () => {
     <>
       {newUser !== null ?
         <ConfirmationForm
-          setNewUser={setNewUser}
+          newUser={newUser}
         />
         :
         <SignUpForm
-          newUser={newUser}
+          setNewUser={setNewUser}
         />
       }
     </>
