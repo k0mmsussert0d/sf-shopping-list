@@ -1,38 +1,44 @@
-import React, {useRef} from 'react';
-import {Field, Control, Input, Icon, Button} from 'rbx';
+import React, {useState} from 'react';
+import {Field, Control, Input, Icon, Button, Column, Help} from 'rbx';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faEnvelope, faCheck, faLock} from '@fortawesome/free-solid-svg-icons';
 import {Auth} from 'aws-amplify';
 import {useAppContext} from '../utils/contextLib';
+import {useForm} from 'react-hook-form';
 
 
 const LoginView = () => {
-  const emailInput = useRef(null);
-  const passwordInput = useRef(null);
+
+  const {register, handleSubmit, formState: {errors}} = useForm();
   const {userHasAuthenticated} = useAppContext();
+  const [cognitoError, setCognitoError] = useState('');
 
-  const handleSubmit = async event => {
-    event.preventDefault();
-    const email = emailInput.current.value;
-    const password = passwordInput.current.value;
-
+  const handleSubmitLoginForm = async data => {
     try {
-      await Auth.signIn(email, password);
+      await Auth.signIn(data.email, data.password);
       console.debug('Logged in');
       userHasAuthenticated(true);
+      // TODO: redirect user to lists view
     } catch (e) {
       console.error(e);
+      setCognitoError(e.message);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit(handleSubmitLoginForm)}>
       <Field>
         <Control iconLeft iconRight>
           <Input
             type="email"
             placeholder="Email"
-            ref={emailInput}
+            name='email'
+            ref={register({
+              required: {
+                value: true,
+                message: 'E-mail is required'
+              }
+            })}
           />
           <Icon align="left">
             <FontAwesomeIcon icon={faEnvelope} />
@@ -41,22 +47,37 @@ const LoginView = () => {
             <FontAwesomeIcon icon={faCheck} />
           </Icon>
         </Control>
+        {errors?.email && <Help color='danger'>{errors.email.message}</Help>}
       </Field>
       <Field>
         <Control iconLeft>
           <Input
             type="password"
             placeholder="Password"
-            ref={passwordInput}
+            name='password'
+            ref={register({
+              required: {
+                value: true,
+                message: 'Password is required'
+              },
+            })}
           />
           <Icon align="left">
             <FontAwesomeIcon icon={faLock} />
           </Icon>
         </Control>
+        {errors?.password && <Help color='danger'>{errors.email.password}</Help>}
       </Field>
-      <Button.Group>
-        <Button color='primary' type='submit'>Log in</Button>
-      </Button.Group>
+      <Column.Group>
+        <Column size='one-third'>
+          <Button.Group>
+            <Button color='primary' type='submit'>Log in</Button>
+          </Button.Group>
+        </Column>
+        <Column size='auto'>
+          {cognitoError && <Help color='danger'>{cognitoError}</Help>}
+        </Column>
+      </Column.Group>
     </form>
   );
 };
