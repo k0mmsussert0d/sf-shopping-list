@@ -2,7 +2,7 @@ import React from 'react';
 import { Navbar, Button } from 'rbx';
 import {useAppContext} from '../utils/contextLib';
 import {Auth} from 'aws-amplify';
-import {Link} from 'react-router-dom';
+import {Link, Redirect} from 'react-router-dom';
 import './Header.scss';
 
 
@@ -13,6 +13,7 @@ const Header = () => {
   const performLogout = async () => {
     await Auth.signOut();
     userHasAuthenticated(false);
+    return <Redirect to='/' />;
   };
 
   const signedOutOptions = () => {
