@@ -18,10 +18,11 @@ import SingupView from './views/SingupView';
 function App() {
 
   const [isAuthenticated, userHasAuthenticated] = useState(false);
-  const [isAuthenticating, setIsAuthenticating] = useState(true);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   useEffect(() => {
     const onLoad = async() => {
+      setIsAuthenticating(true);
       try {
         await Auth.currentSession();
         userHasAuthenticated(true);
@@ -40,8 +41,8 @@ function App() {
     <AppContext.Provider value={{ isAuthenticated, userHasAuthenticated }}>
       <Router>
         <Header />
-        <Switch>
-          <Generic as='div' className='main-wrapper'>
+        <Generic as='div' className='main-wrapper'>
+          <Switch>
             <Route path='/login'>
               <LoginView />
             </Route>
@@ -50,8 +51,8 @@ function App() {
             </Route>
             <Route path='/lists'></Route>
             <Route path='/profile'></Route>
-          </Generic>
-        </Switch>
+          </Switch>
+        </Generic>
       </Router>
     </AppContext.Provider>
   );

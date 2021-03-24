@@ -1,4 +1,4 @@
-import React, {useState, useRef} from 'react';
+import React, {useRef} from 'react';
 import {Field, Control, Input, Icon, Button} from 'rbx';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faEnvelope, faCheck, faLock} from '@fortawesome/free-solid-svg-icons';

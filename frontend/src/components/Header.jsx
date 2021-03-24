@@ -1,8 +1,9 @@
-import React, {useState} from 'react';
+import React from 'react';
 import { Navbar, Button } from 'rbx';
 import {useAppContext} from '../utils/contextLib';
 import {Auth} from 'aws-amplify';
-
+import {Link} from 'react-router-dom';
+import './Header.scss';
 
 
 const Header = () => {
@@ -18,12 +19,16 @@ const Header = () => {
     return (
       <Navbar.Menu>
         <Navbar.Segment align="end">
-          <Navbar.Item>
+          <Navbar.Item as='div'>
             <Button.Group>
-              <Button color="primary">
-                <strong>Sign up</strong>
-              </Button>
-              <Button color="light">Log in</Button>
+              <Link to='/signup'>
+                <Button color="primary">
+                  <strong>Sign up</strong>
+                </Button>
+              </Link>
+              <Link to='/login'>
+                <Button color="light">Log in</Button>
+              </Link>
             </Button.Group>
           </Navbar.Item>
         </Navbar.Segment>
@@ -56,15 +61,17 @@ const Header = () => {
   return (
     <Navbar>
       <Navbar.Brand>
-        <Navbar.Item href="#">
-          <img
-            src="https://bulma.io/images/bulma-logo.png"
-            alt=""
-            role="presentation"
-            width="112"
-            height="28"
-          />
-        </Navbar.Item>
+        <Link to='/'>
+          <Navbar.Item as='div'>
+            <img
+              src="https://bulma.io/images/bulma-logo.png"
+              alt=""
+              role="presentation"
+              width="112"
+              height="28"
+            />
+          </Navbar.Item>
+        </Link>
         <Navbar.Burger />
       </Navbar.Brand>
       {isAuthenticated ? signedInOptions() : signedOutOptions()}
