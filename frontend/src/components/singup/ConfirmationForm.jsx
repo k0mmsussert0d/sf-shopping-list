@@ -5,6 +5,7 @@ import React, {useState} from 'react';
 import {useForm} from 'react-hook-form';
 import {Auth} from 'aws-amplify';
 import PropTypes from 'prop-types';
+import {Redirect} from 'react-router-dom';
 
 const ConfirmationForm = ({newUser}) => {
 
@@ -16,6 +17,7 @@ const ConfirmationForm = ({newUser}) => {
     try {
       await Auth.confirmSignUp(newUser['email'], code);
       await Auth.signIn(newUser['email'], newUser['password']);
+      return <Redirect to='/' />;
     } catch (e) {
       console.error(e);
       setCognitoError(e.message);
