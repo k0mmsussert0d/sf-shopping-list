@@ -41,7 +41,9 @@ const Header = () => {
     return (
       <Navbar.Menu>
         <Navbar.Segment align="start">
-          <Navbar.Item>Lists</Navbar.Item>
+          <Link to='/lists'>
+            <Navbar.Item as='div'>Lists</Navbar.Item>
+          </Link>
           <Navbar.Item>Profile</Navbar.Item>
         </Navbar.Segment>
         <Navbar.Segment align="end">

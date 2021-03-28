@@ -13,6 +13,7 @@ import 'rbx/index.css';
 import { AppContext } from './utils/contextLib';
 import {Auth} from 'aws-amplify';
 import SingupView from './views/SingupView';
+import Lists from './views/Lists';
 
 
 function App() {
@@ -49,7 +50,9 @@ function App() {
             <Route path='/signup'>
               <SingupView />
             </Route>
-            <Route path='/lists'></Route>
+            <Route path='/lists'>
+              <Lists />
+            </Route>
             <Route path='/profile'></Route>
           </Switch>
         </Generic>
