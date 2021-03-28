@@ -43,6 +43,7 @@ provider:
             - Ref: serviceUserPool
         audience:
           - Ref: serviceUserPoolClient
+    cors: true
 
 functions:
   createList:
@@ -188,6 +189,7 @@ resources:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
         TableName: ${self:provider.environment.DYNAMODB_LISTS_SHARE_TABLE}
+
     serviceUserPool:
       Type: AWS::Cognito::UserPool
       Properties:
@@ -232,6 +234,102 @@ resources:
         UserPoolId: 
           Ref: serviceUserPool
         Domain: service-user-pool-domain-${opt:stage, self:provider.stage}-${self:provider.environment.DOMAIN_SUFFIX}
+    serviceIdentityPool:
+      Type: AWS::Cognito::IdentityPool
+      Properties:
+        IdentityPoolName: service-identity-pool-${opt:stage, self:provider.stage}-${self:provider.environment.DOMAIN_SUFFIX}
+        AllowUnauthenticatedIdentities: false
+        CognitoIdentityProviders:
+          -
+            ClientId:
+              Ref: serviceUserPoolClient
+            ProviderName:
+              Fn::GetAtt:
+                - serviceUserPool
+                - ProviderName
+    CognitoUnauthorizedRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Federated: "cognito-identity.amazonaws.com"
+              Action:
+                - sts:AssumeRoleWithWebIdentity
+              Condition:
+                StringEquals:
+                  "cognito-identity.amazonaws.com:aud":
+                    Ref: serviceIdentityPool
+                "ForAnyValue:StringLike":
+                  "cognito-identity.amazonaws.com:amr": unauthenticated
+        Policies:
+          - PolicyName: CognitoUnauthorizedPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - mobileanalytics:PutEvents
+                    - cognito-sync:*
+                  Resource: '*'
+    CognitoAuthorizedRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Federated: "cognito-identity.amazonaws.com"
+              Action:
+                - sts:AssumeRoleWithWebIdentity
+              Condition:
+                StringEquals:
+                  "cognito-identity.amazonaws.com:aud":
+                    Ref: serviceIdentityPool
+                "ForAnyValue:StringLike":
+                  "cognito-identity.amazonaws.com:amr": authenticated
+        Policies:
+          - PolicyName: CognitoAuthorizedPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - mobileanalytics:PutEvents
+                    - cognito-sync:*
+                    - cognito-identity:*
+                  Resource: '*'
+                - Effect: Allow
+                  Action:
+                    - execute-api:Invoke
+                  Resource:
+                    - Fn::Join:
+                      - ''
+                      - - 'arn:aws:execute-api:'
+                        - '${opt:region, self:provider.region}:'
+                        - Ref: AWS::AccountId
+                        - ':'
+                        - Ref: HttpApi
+                        - '/'
+                        - '${opt:stage, self:provider.stage}/*/*'
+    serviceIdentityPoolRoleMapping:
+      Type: AWS::Cognito::IdentityPoolRoleAttachment
+      Properties:
+        IdentityPoolId:
+          Ref: serviceIdentityPool
+        Roles:
+          authenticated:
+            Fn::GetAtt:
+              - CognitoAuthorizedRole
+              - Arn
+          unauthenticated:
+            Fn::GetAtt:
+              - CognitoUnauthorizedRole
+              - Arn
+
 package:
   exclude:
     - node_modules/**
