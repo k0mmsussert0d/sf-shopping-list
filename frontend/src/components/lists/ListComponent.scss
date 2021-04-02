@@ -1,3 +1,23 @@
+.list-name {
+  display: flex;
+  align-items: flex-start;
+
+  &-edit {
+    display: flex;
+    margin-bottom: 1em;
+  }
+
+  .icon {
+    &:hover {
+      color: gray !important;
+    }
+
+    &:active {
+      color: black !important;
+    }
+  }
+}
+
 .item-block {
   height: 36px;
   display: flex;

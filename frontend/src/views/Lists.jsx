@@ -1,6 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {API} from 'aws-amplify';
 import ListComponent from '../components/lists/ListComponent';
+import {Button} from 'rbx';
 
 const Lists = () => {
 
@@ -21,9 +22,15 @@ const Lists = () => {
     <>
       {lists.map(l => {
         return (
-          <ListComponent key={l.id} id={l.id} name={l.list_name} items={l.items} />
+          <ListComponent
+            key={l.id}
+            id={l.id}
+            name={l.list_name}
+            items={l.items}
+          />
         );
       })}
+      <Button color='primary' fullwidth>Create new list</Button>
     </>
   );
 };

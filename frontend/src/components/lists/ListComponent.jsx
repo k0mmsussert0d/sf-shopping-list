@@ -1,13 +1,17 @@
 import React, {useState, useEffect, useRef} from 'react';
 import {Box, Title, List, Generic, Input, Button, Icon} from 'rbx';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faPlusSquare, faPaperPlane, faTimes} from '@fortawesome/free-solid-svg-icons';
+import {faPlusSquare, faPaperPlane, faTimes, faEdit} from '@fortawesome/free-solid-svg-icons';
 import PropTypes from 'prop-types';
-
-import './ListComponent.scss';
 import {API} from 'aws-amplify';
+import './ListComponent.scss';
 
 const ListComponent = ({id, name, items}) => {
+
+  const [listName, setListName] = useState('');
+  const [newListName, setNewListName] = useState('');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const listNameInputEl = useRef();
 
   const [listItems, setListItems] = useState([]);
   const [isAddingItem, setIsAddingItem] = useState(false);
@@ -15,8 +19,16 @@ const ListComponent = ({id, name, items}) => {
   const itemInputEl = useRef();
 
   useEffect(() => {
+    setListName(name);
     setListItems(items);
   }, []);
+
+  useEffect(() => {
+    if (isEditingName) {
+      listNameInputEl.current.value = listName;
+      listNameInputEl.current.focus();
+    }
+  }, [isEditingName]);
 
   useEffect(() => {
     if (isAddingItem) {
@@ -24,23 +36,41 @@ const ListComponent = ({id, name, items}) => {
     }
   }, [isAddingItem]);
 
-  const updateList = async items => {
+  const updateList = async ({name = '', items = []}) => {
+    const init = {};
+    if (name !== '') {
+      init.listName = name;
+    }
+    if (items.length > 0) {
+      init.items = items;
+    }
     await API.put(
       'api',
       `/list/${id}`,
       {
-        body: items
+        body: init
       }
     );
+  };
+
+  const renameList = () => {
+    if (newListName) {
+      setListName(newListName);
+      updateList({name: newListName})
+        .then(() => {
+          setIsEditingName(false);
+        });
+    }
   };
 
   const addItemToList = () => {
     if (newItemValue) {
       const newItems = [...listItems, newItemValue];
       setListItems(newItems);
-      updateList(newItems)
+      updateList({items: newItems})
         .then(() => {
           setNewItemValue('');
+          itemInputEl.current.value = '';
         });
     }
   };
@@ -49,13 +79,46 @@ const ListComponent = ({id, name, items}) => {
     if (index < listItems.length) {
       const newItems = listItems.filter((_, i) => i !== index);
       setListItems(newItems);
-      updateList(newItems).then(() => {});
+      updateList({items: newItems}).then(() => {});
     }
   };
 
   return (
     <Box>
-      <Title size={3}>{name}</Title>
+      {isEditingName ?
+        <Generic as='div' className='list-name-edit'>
+          <Input
+            type='text'
+            placeholder='List name'
+            ref={listNameInputEl}
+            onChange={e => setNewListName(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                renameList();
+              } else if (e.key === 'Escape') {
+                setIsEditingName(false);
+              }
+            }
+            }
+          />
+          <Button
+            color='success'
+            onClick={renameList}
+          >
+            Apply
+          </Button>
+        </Generic>
+        :
+        <Generic as='div' className='list-name'>
+          <Title size={3}>{listName}</Title>
+          <Icon
+            color='light'
+            size='large'
+            onClick={() => setIsEditingName(true)}
+          >
+            <FontAwesomeIcon icon={faEdit}/>
+          </Icon>
+        </Generic>}
       <List>
         {listItems.map((i, idx) => {
           return (
@@ -79,10 +142,12 @@ const ListComponent = ({id, name, items}) => {
                   type='text'
                   placeholder='New item'
                   ref={itemInputEl}
-                  onChange={e => setNewItemValue(e.current.value)}
+                  onChange={e => setNewItemValue(e.target.value)}
                   onKeyDown={e => {
                     if (e.key === 'Enter') {
                       addItemToList();
+                    } else if (e.key === 'Escape') {
+                      setIsAddingItem(false);
                     }
                   }}
                 />
