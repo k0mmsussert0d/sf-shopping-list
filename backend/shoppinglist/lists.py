@@ -6,7 +6,6 @@ import logging
 
 from shortuuid import ShortUUID
 import boto3
-from boto3.dynamodb.conditions import Attr
 
 from .utils import DecimalEncoder
 
@@ -16,6 +15,7 @@ logger.setLevel(logging.DEBUG)  # TODO: parametrize
 
 l_table = dynamodb.Table(os.environ['DYNAMODB_MAIN_TABLE'])
 utl_table = dynamodb.Table(os.environ['DYNAMODB_USER_TO_LISTS_TABLE'])
+
 
 def _add_to_users_lists(user_id, list_id):
     """
@@ -44,6 +44,7 @@ def _add_to_users_lists(user_id, list_id):
         'user_id': user_id,
         'lists': lists
     }
+
 
 def _delete_from_user_lists(user_id, list_id):
     """
@@ -111,6 +112,7 @@ def create(event, context):
         'body': json.dumps(item)
     }
 
+
 def get(event, context):
     logger.debug(event)
 
@@ -123,8 +125,8 @@ def get(event, context):
     logger.debug(result)
 
     if 'Item' not in result or \
-        (result['Item']['user_id'] != user_data['sub'] and \
-         not user_data['sub'] in result['Item']['guests']):
+            (result['Item']['user_id'] != user_data['sub'] and
+             not user_data['sub'] in result['Item']['guests']):
         return {
             'statusCode': 404,
             'body': 'You don\'t have access to this list or it doesn\'t exist'
@@ -134,6 +136,7 @@ def get(event, context):
         'statusCode': 200,
         'body': json.dumps(result['Item'], cls=DecimalEncoder)
     }
+
 
 def get_all(event, context):
     logger.debug(event)
@@ -167,8 +170,9 @@ def get_all(event, context):
 
     return {
         'statusCode': 200,
-        'body': json.dumps(res,  cls=DecimalEncoder)
+        'body': json.dumps(res, cls=DecimalEncoder)
     }
+
 
 def update(event, context):
     logger.debug(event)
@@ -180,9 +184,11 @@ def update(event, context):
     else:
         body = event['body']
     data = json.loads(body)
-    if not isinstance(data, list) or not all([isinstance(x, str) for x in data]):
+    items = data.get('items')
+    list_name = data.get('listName')
+    if items is None and list_name is None:
         return {
-            'statusCode': 401,
+            'statusCode': 400,
             'body': json.dumps({
                 'status': 'error',
                 'reason': 'Provide updated items list as a request body'
@@ -212,19 +218,30 @@ def update(event, context):
                 'reason': 'You don\'t have access to this list'
             })
         }
-    
-    l_table.update_item(
-        Key={
-            'id': list_id
-        },
-        UpdateExpression='SET #i = :i',
-        ExpressionAttributeNames={
-            '#i': 'items'
-        },
-        ExpressionAttributeValues={
-            ':i': data
-        }
-    )
+
+    if items is not None:
+        l_table.update_item(
+            Key={
+                'id': list_id
+            },
+            UpdateExpression='SET #i = :i',
+            ExpressionAttributeNames={
+                '#i': 'items'
+            },
+            ExpressionAttributeValues={
+                ':i': items
+            }
+        )
+    if list_name is not None:
+        l_table.update_item(
+            Key={
+                'id': list_id
+            },
+            UpdateExpression='SET list_name = :n',
+            ExpressionAttributeValues={
+                ':n': list_name
+            }
+        )
 
     result = l_table.get_item(
         Key={
@@ -236,6 +253,7 @@ def update(event, context):
         'statusCode': 200,
         'body': json.dumps(result['Item'], cls=DecimalEncoder)
     }
+
 
 def delete(event, context):
     user_data = event['requestContext']['authorizer']['jwt']['claims']
