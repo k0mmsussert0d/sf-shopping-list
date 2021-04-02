@@ -2,6 +2,10 @@
   display: flex;
   align-items: flex-start;
 
+  .item-options-icon {
+    margin-left: auto;
+  }
+
   &-edit {
     display: flex;
     margin-bottom: 1em;
@@ -32,5 +36,14 @@ span.item-name {
 
   span.item-remove-icon {
     margin-left: auto;
+  }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+
+  span.icon {
+    margin-right: 1rem;
   }
 }

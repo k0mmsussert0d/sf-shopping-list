@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {Box, Title, List, Generic, Input, Button, Icon} from 'rbx';
+import {Box, Title, List, Generic, Input, Button, Icon, Dropdown} from 'rbx';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faPlusSquare, faPaperPlane, faTimes, faEdit} from '@fortawesome/free-solid-svg-icons';
+import {faPlusSquare, faPaperPlane, faTimes, faEdit, faEllipsisH, faShare} from '@fortawesome/free-solid-svg-icons';
 import PropTypes from 'prop-types';
 import {API} from 'aws-amplify';
 import './ListComponent.scss';
@@ -132,6 +132,37 @@ const ListComponent = ({id, name, items, newEntry = false}) => {
           >
             <FontAwesomeIcon icon={faEdit}/>
           </Icon>
+          <Dropdown
+            as='span'
+            className='item-options-icon'
+            align='right'
+          >
+            <Dropdown.Trigger>
+              <Icon
+                color='dark'
+                size='large'
+              >
+                <FontAwesomeIcon icon={faEllipsisH} />
+              </Icon>
+            </Dropdown.Trigger>
+            <Dropdown.Menu>
+              <Dropdown.Content>
+                <Dropdown.Item>
+                  <Icon>
+                    <FontAwesomeIcon icon={faShare} />
+                  </Icon>
+                  <span>Share</span>
+                </Dropdown.Item>
+                <Dropdown.Divider />
+                <Dropdown.Item>
+                  <Icon color='danger'>
+                    <FontAwesomeIcon icon={faTimes} />
+                  </Icon>
+                  <span>Delete</span>
+                </Dropdown.Item>
+              </Dropdown.Content>
+            </Dropdown.Menu>
+          </Dropdown>
         </Generic>}
       <List>
         {listItems.map((i, idx) => {
