@@ -1,6 +1,6 @@
 import React, {useState, useEffect} from 'react';
 import {API} from 'aws-amplify';
-import List from '../components/lists/List';
+import ListComponent from '../components/lists/ListComponent';
 
 const Lists = () => {
 
@@ -21,7 +21,7 @@ const Lists = () => {
     <>
       {lists.map(l => {
         return (
-          <List key={l.id} name={l.name} items={{}} />
+          <ListComponent key={l.id} id={l.id} name={l.list_name} items={l.items} />
         );
       })}
     </>
