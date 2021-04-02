@@ -1,8 +1,16 @@
-div.item-block {
+.item-block {
   height: 36px;
   display: flex;
 }
 
 span.item-name {
   margin-left: 1em;
+}
+
+.list-item {
+  display: flex;
+
+  span.item-remove-icon {
+    margin-left: auto;
+  }
 }

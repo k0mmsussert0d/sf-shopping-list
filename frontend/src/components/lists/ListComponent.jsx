@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react';
 import {Box, Title, List, Generic, Input, Button, Icon} from 'rbx';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faPlusSquare, faPaperPlane} from '@fortawesome/free-solid-svg-icons';
+import {faPlusSquare, faPaperPlane, faTimes} from '@fortawesome/free-solid-svg-icons';
 import PropTypes from 'prop-types';
 
 import './ListComponent.scss';
@@ -11,28 +11,46 @@ const ListComponent = ({id, name, items}) => {
 
   const [listItems, setListItems] = useState([]);
   const [isAddingItem, setIsAddingItem] = useState(false);
-  const itemInputEl = useRef(null);
+  const [newItemValue, setNewItemValue] = useState('');
+  const itemInputEl = useRef();
 
   useEffect(() => {
     setListItems(items);
   }, []);
 
+  useEffect(() => {
+    if (isAddingItem) {
+      itemInputEl.current.focus();
+    }
+  }, [isAddingItem]);
+
+  const updateList = async items => {
+    await API.put(
+      'api',
+      `/list/${id}`,
+      {
+        body: items
+      }
+    );
+  };
 
   const addItemToList = () => {
-    const updateList = async items => {
-      await API.put(
-        'api',
-        `/list/${id}`,
-        {
-          body: items
-        }
-      );
-    };
+    if (newItemValue) {
+      const newItems = [...listItems, newItemValue];
+      setListItems(newItems);
+      updateList(newItems)
+        .then(() => {
+          setNewItemValue('');
+        });
+    }
+  };
 
-    const item = itemInputEl.current.value;
-    const newItems = [...listItems, item];
-    setListItems(newItems);
-    updateList(newItems);
+  const removeItemFromList = index => {
+    if (index < listItems.length) {
+      const newItems = listItems.filter((_, i) => i !== index);
+      setListItems(newItems);
+      updateList(newItems).then(() => {});
+    }
   };
 
   return (
@@ -41,23 +59,46 @@ const ListComponent = ({id, name, items}) => {
       <List>
         {listItems.map((i, idx) => {
           return (
-            <List.Item key={idx}>{i}</List.Item>
+            <List.Item key={name + '_' + idx}>
+              <Generic as='span' className='item-label'>
+                {i}
+              </Generic>
+              <Generic as='span' className='item-remove-icon'>
+                <Icon color='danger' onClick={() => removeItemFromList(idx)}>
+                  <FontAwesomeIcon icon={faTimes} />
+                </Icon>
+              </Generic>
+            </List.Item>
           );
         })}
         <List.Item>
           <Generic as='div' className='item-block'>
             {isAddingItem ?
               <>
-                <Input type='text' placeholder='New item' ref={itemInputEl} />
-                <Button onClick={addItemToList}>
+                <Input
+                  type='text'
+                  placeholder='New item'
+                  ref={itemInputEl}
+                  onChange={e => setNewItemValue(e.current.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      addItemToList();
+                    }
+                  }}
+                />
+                <Button type='submit'>
                   <Icon size='small'>
                     <FontAwesomeIcon icon={faPaperPlane} />
                   </Icon>
                 </Button>
               </>
               :
-              <Generic onClick={() => setIsAddingItem(!isAddingItem)}>
-                <FontAwesomeIcon icon={faPlusSquare} />
+              <Generic onClick={() => {
+                setIsAddingItem(!isAddingItem);
+              }}>
+                <Icon color='success'>
+                  <FontAwesomeIcon icon={faPlusSquare} />
+                </Icon>
                 <Generic as='span' className='item-name'>Add new item</Generic>
               </Generic>
             }
@@ -69,7 +110,7 @@ const ListComponent = ({id, name, items}) => {
 };
 
 ListComponent.propTypes = {
-  id: PropTypes.number,
+  id: PropTypes.string,
   name: PropTypes.string,
   items: PropTypes.array,
 };
