@@ -7,15 +7,31 @@ const Lists = () => {
 
   const [lists, setLists] = useState([]);
 
+  const getLists = async () => {
+    const lists = await API.get(
+      'api',
+      '/list',
+    );
+    setLists(lists);
+  };
+
+  const createList = async () => {
+    API.post(
+      'api',
+      '/list',
+      {
+        body: {
+          name: '[unnamed]'
+        }
+      }
+    ).then(res => {
+      setLists([...lists, res]);
+    });
+  };
+
   useEffect(() => {
-    const getLists = async () => {
-      const lists = await API.get(
-        'api',
-        '/list',
-      );
-      setLists(lists);
-    };
-    getLists();
+    getLists()
+      .then(() => {});
   }, []);
 
   return (
@@ -27,10 +43,17 @@ const Lists = () => {
             id={l.id}
             name={l.list_name}
             items={l.items}
+            newEntry={l.list_name === '[unnamed]'}
           />
         );
       })}
-      <Button color='primary' fullwidth>Create new list</Button>
+      <Button
+        color='primary'
+        fullwidth
+        onClick={createList}
+      >
+        Create new list
+      </Button>
     </>
   );
 };

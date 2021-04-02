@@ -6,12 +6,13 @@ import PropTypes from 'prop-types';
 import {API} from 'aws-amplify';
 import './ListComponent.scss';
 
-const ListComponent = ({id, name, items}) => {
+const ListComponent = ({id, name, items, newEntry = false}) => {
 
   const [listName, setListName] = useState('');
   const [newListName, setNewListName] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
   const listNameInputEl = useRef();
+  const [isNameError, setIsNameError] = useState(false);
 
   const [listItems, setListItems] = useState([]);
   const [isAddingItem, setIsAddingItem] = useState(false);
@@ -21,6 +22,10 @@ const ListComponent = ({id, name, items}) => {
   useEffect(() => {
     setListName(name);
     setListItems(items);
+    if (newEntry) {
+      setListName('');
+      setIsEditingName(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -44,13 +49,17 @@ const ListComponent = ({id, name, items}) => {
     if (items.length > 0) {
       init.items = items;
     }
-    await API.put(
+    API.put(
       'api',
       `/list/${id}`,
       {
         body: init
       }
-    );
+    ).then(() => {
+      if (newEntry) {
+        newEntry = false;
+      }
+    });
   };
 
   const renameList = () => {
@@ -90,13 +99,18 @@ const ListComponent = ({id, name, items}) => {
           <Input
             type='text'
             placeholder='List name'
+            color={isNameError ? 'danger' : ''}
             ref={listNameInputEl}
             onChange={e => setNewListName(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter') {
                 renameList();
               } else if (e.key === 'Escape') {
-                setIsEditingName(false);
+                if (newEntry) {
+                  setIsNameError(true);
+                } else {
+                  setIsEditingName(false);
+                }
               }
             }
             }
@@ -178,6 +192,7 @@ ListComponent.propTypes = {
   id: PropTypes.string,
   name: PropTypes.string,
   items: PropTypes.array,
+  newEntry: PropTypes.bool,
 };
 
 export default ListComponent;
