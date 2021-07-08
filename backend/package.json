@@ -1,13 +1,7 @@
 {
-  "name": "sf-shopping-list",
-  "version": "1.0.0",
-  "main": "index.js",
-  "license": "MIT",
   "dependencies": {
-    "serverless": "^2.23.0"
-  },
-  "devDependencies": {
+    "serverless": "^2.51.2",
     "serverless-finch": "^2.6.0",
-    "serverless-python-requirements": "^5.1.0"
+    "serverless-python-requirements": "^5.1.1"
   }
 }

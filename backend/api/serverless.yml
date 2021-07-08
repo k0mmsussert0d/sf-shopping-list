@@ -1,0 +1,123 @@
+service: sf-shopping-list
+frameworkVersion: '2'
+variablesResolutionMode: 20210326
+
+provider:
+  name: aws
+  region: 'us-east-1'
+  runtime: python3.8
+  lambdaHashingVersion: 20201221
+  stage: dev
+  environment:
+    DOMAIN_PREFIX: ${self:service}-${opt:stage, self:provider.stage, "dev"}
+    DYNAMODB_MAIN_TABLE: ${cf:${self:custom.stacks.shared}.ListsTableName}
+    DYNAMODB_USER_TO_LISTS_TABLE: ${cf:${self:custom.stacks.shared}.UserToListsTableName}
+    DYNAMODB_LISTS_SHARE_TABLE: ${cf:${self:custom.stacks.shared}.ListsSharingTableName}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_MAIN_TABLE}"
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_USER_TO_LISTS_TABLE}"
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_LISTS_SHARE_TABLE}"
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_MAIN_TABLE}/index/*"
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_USER_TO_LISTS_TABLE}/index/*"
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_LISTS_SHARE_TABLE}/index/*"
+  httpApi:
+    id:
+      'Fn::ImportValue': ${self:custom.stacks.shared}-HttpApiId
+
+functions:
+  createList:
+    handler: shoppinglist.lists.create
+    events:
+      - httpApi:
+          method: POST
+          path: /list
+          authorizer: ${self:custom.resources.authorizer}
+  getList:
+    handler: shoppinglist.lists.get
+    events:
+      - httpApi:
+          method: GET
+          path: /list/{id}
+          authorizer: ${self:custom.resources.authorizer}
+  listLists:
+    handler: shoppinglist.lists.get_all
+    events:
+      - httpApi:
+          method: GET
+          path: /list
+          authorizer: ${self:custom.resources.authorizer}
+  updateList:
+    handler: shoppinglist.lists.update
+    events:
+      - httpApi:
+          method: PUT
+          path: /list/{id}
+          authorizer: ${self:custom.resources.authorizer}
+  deleteList:
+    handler: shoppinglist.lists.delete
+    events:
+      - httpApi:
+          method: DELETE
+          path: /list/{id}
+          authorizer: ${self:custom.resources.authorizer}
+
+  shareList:
+    handler: shoppinglist.share.share_list
+    events:
+      - httpApi:
+          method: POST
+          path: /list/{id}/share
+          authorizer: ${self:custom.resources.authorizer}
+  acceptInvitation:
+    handler: shoppinglist.share.accept_invitation
+    events:
+      - httpApi:
+          method: GET
+          path: /s/{code}
+          authorizer: ${self:custom.resources.authorizer}
+
+  getProfileInfo:
+    handler: shoppinglist.user.get
+    events:
+      - httpApi:
+            method: GET
+            path: /user
+            authorizer: ${self:custom.resources.authorizer}
+  updateUserAvatar:
+    handler: shoppinglist.user.update_avatar
+    events:
+      - httpApi:
+            method: POST
+            path: /user/avatar
+            authorizer: ${self:custom.resources.authorizer}
+
+package:
+  exclude:
+    - node_modules/**
+    - venv/**
+    - frontend/**
+plugins:
+   - serverless-python-requirements
+   - serverless-finch
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+  stacks:
+    shared: ${self:service}-shared-${opt:stage, self:provider.stage, "dev"}
+  resources:
+    authorizer:
+      type: jwt
+      id:
+        'Fn::ImportValue': ${self:custom.stacks.shared}-HttpApiAuthorizerId
+  client:
+    bucketName: sf-shopping-list-dev-assets
+    distributionFolder: assets

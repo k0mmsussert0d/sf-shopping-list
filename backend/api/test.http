@@ -1,0 +1,51 @@
+POST {{api}}/list
+Authorization: {{auth}}
+
+{
+    "name": "test4"
+}
+
+###
+
+POST {{api}}/list/3WuMxp/share
+Authorization: {{auth}}
+
+3600
+
+###
+GET  {{api}}/list
+Authorization: {{auth}}
+###
+get {{api}}/user
+Authorization: {{auth}}
+Access-Token: {{access}}
+
+
+###
+put {{api}}/user/avatar
+Authorization: {{auth}}
+Access-Token: {{access}}
+
+34
+
+###
+get {{api}}/s/7uCW
+Authorization: {{auth}}
+
+###
+https://localhost:3000/#
+id_token=eyJraWQiOiJGSEFucWVsNUVSSjBnNTFDVk9kS2tvSEJVWG1ucklHbmlsaGQyS3kwbWJjPSIsImFsZyI6IlJTMjU2In0.eyJhdF9oYXNoIjoiMDB6U2VfNFhfTHFucHhQREZETFUtQSIsInN1YiI6ImNiNjQ2ZWI0LWI4YjctNGU3YS05MzFjLTI5YWFjYjNjNWUxMyIsImF1ZCI6IjdqZ2Nldm91MDhsZDE3aGppM2Foam12Y3NqIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRva2VuX3VzZSI6ImlkIiwiYXV0aF90aW1lIjoxNjEzNjA3NzcwLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9KQ2VaOFU4WFAiLCJjb2duaXRvOnVzZXJuYW1lIjoiY2I2NDZlYjQtYjhiNy00ZTdhLTkzMWMtMjlhYWNiM2M1ZTEzIiwiZXhwIjoxNjEzNjExMzcwLCJpYXQiOjE2MTM2MDc3NzAsImVtYWlsIjoibWFpbC5mb3Iuc3BhbTEyQGdtYWlsLmNvbSJ9.G5fWKb6cE4BgLZ6uebnc0aad1LR3fQp1P6ASxUu9TQLGBjrdCDS3q3HfuBLNjPzFBy_ANEYRW9m7yFwlaF6zmPFDITDBjrFunHIDJaGx5sMKDi-ZYKsjMbpHMjnXzbbb3NSe7C8I0X84Upa9kWXhqOmST7NZ824vNXQI5cqEvnK0n1sK6YYA_0vAdGsL5SibnP9VZbK90HaGdhijpyPYIxV-vdzE2e5z8jzwzGm4usz6KS89_3c2-Yx4GvCMfPraNiqieUVdS2DSuVJc-5wqpbg5tJeQ59L_SbnhsNmeDBj4XeLAi7VrmrvrMH2k6rJy9_CAcH0Vvfdwe3Pps0LRrA
+&access_token=eyJraWQiOiJxUkdCWkdrMjJQcjlEVlI5YVwvSE8ydmc4MGR4YnZQc21uSHFsV05wMlFPVT0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJjYjY0NmViNC1iOGI3LTRlN2EtOTMxYy0yOWFhY2IzYzVlMTMiLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJzY29wZSI6ImF3cy5jb2duaXRvLnNpZ25pbi51c2VyLmFkbWluIHBob25lIG9wZW5pZCBwcm9maWxlIGVtYWlsIiwiYXV0aF90aW1lIjoxNjEzNjA3NzcwLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9KQ2VaOFU4WFAiLCJleHAiOjE2MTM2MTEzNzAsImlhdCI6MTYxMzYwNzc3MCwidmVyc2lvbiI6MiwianRpIjoiNjU1OTU5OTAtYTdhOC00ZjYzLTkzNjYtZDM5MWJkZjAxOWVlIiwiY2xpZW50X2lkIjoiN2pnY2V2b3UwOGxkMTdoamkzYWhqbXZjc2oiLCJ1c2VybmFtZSI6ImNiNjQ2ZWI0LWI4YjctNGU3YS05MzFjLTI5YWFjYjNjNWUxMyJ9.yiUXnTdkW5vh7mo7YHke99WQ8JWaQ6KaXQx-6XjePAveYf_QBCAULkWP2YoVM9TELJfsj-MeAECxj0hYX_NsM2y4J7vEssNf8JtuV_rVw-jCAFLW9keQjB5YnJouRTmSvLo_1gFY7U0h3V0R0eEgMFXI3HZ41fEc1tz5xArUalaG_oybHK25vjniTv26hOiJshSqGNZNKPbFYHsrDRvSyfH2KIvEuBIUpqvTdWPpeErlE_WDL8ZRrjwTccmtjENziGajz2Yr1a_odzXI_ibGIt9jfFzY1k3o_R-LWtJJt5o4AQXVZiOWALXUhrDNngRd230GVz-jy97a59Qmdc-6RQ
+&expires_in=3600
+&token_type=Bearer
+
+###
+
+PUT {{api}}/list/3WuMxp
+Authorization: {{auth}}
+Content-Type: application/json
+
+[
+    "item1",
+    "item2"
+]

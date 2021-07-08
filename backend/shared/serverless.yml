@@ -1,0 +1,224 @@
+service: sf-shopping-list-shared
+frameworkVersion: '2'
+variablesResolutionMode: '20210326'
+useDotenv: true
+
+provider:
+  name: 'aws'
+  region: 'us-east-1'
+  runtime: 'python3.8'
+  lambdaHashingVersion: '20201221'
+  environment:
+    DOMAIN_PREFIX: ${self:service}-${opt:stage, self:provider.stage, 'dev'}
+    API_GATEWAY: ${self:provider.environment.DOMAIN_PREFIX}-apigw
+    DYNAMODB_MAIN_TABLE: ${self:provider.environment.DOMAIN_PREFIX}-main-table
+    DYNAMODB_USER_TO_LISTS_TABLE: ${self:provider.environment.DOMAIN_PREFIX}-user-to-lists-table
+    DYNAMODB_LISTS_SHARE_TABLE: ${self:provider.environment.DOMAIN_PREFIX}-lists-share-table
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_MAIN_TABLE}"
+            - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_USER_TO_LISTS_TABLE}"
+            - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_LISTS_SHARE_TABLE}"
+            - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_MAIN_TABLE}/index/*"
+            - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_USER_TO_LISTS_TABLE}/index/*"
+            - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_LISTS_SHARE_TABLE}/index/*"
+
+resources:
+  Resources:
+    HttpApi:
+      Type: 'AWS::ApiGatewayV2::Api'
+      DependsOn: UserPool
+      Properties:
+        Name: ${self:provider.environment.API_GATEWAY}
+        ProtocolType: HTTP
+        CorsConfiguration:
+          AllowOrigins:
+            - '*'
+          AllowHeaders:
+            - 'Content-Type'
+            - 'X-Amz-Date'
+            - 'Authorization'
+            - 'X-Api-Key'
+            - 'X-Amz-Security-Token'
+            - 'X-Amz-User-Agent'
+          AllowMethods:
+            - GET
+            - POST
+            - PUT
+            - DELETE
+            - OPTIONS
+
+    HttpApiAuthorizer:
+      Type: 'AWS::ApiGatewayV2::Authorizer'
+      Properties:
+        Name: ${self:provider.environment.API_GATEWAY}-authorizer
+        ApiId:
+          Ref: HttpApi
+        AuthorizerType: JWT
+        IdentitySource:
+          - $request.header.Authorization
+        JwtConfiguration:
+          Audience:
+            - Ref: UserPoolClient
+          Issuer:
+            Fn::Join:
+              - ''
+              - - 'https://cognito-idp.'
+                - '${opt:region, self:provider.region}'
+                - '.amazonaws.com/'
+                - Ref: UserPool
+
+
+    ListsDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: user_id
+            AttributeType: S
+          - AttributeName: created_at
+            AttributeType: N
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: gsiUserLists
+            KeySchema:
+              - AttributeName: user_id
+                KeyType: HASH
+              - AttributeName: created_at
+                KeyType: RANGE
+            Projection:
+              ProjectionType: KEYS_ONLY
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:provider.environment.DYNAMODB_MAIN_TABLE}
+
+    UserToListsDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Delete
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: user_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: user_id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:provider.environment.DYNAMODB_USER_TO_LISTS_TABLE}
+
+    ListsSharingDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        TimeToLiveSpecification:
+          Enabled: true
+          AttributeName: valid_until
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:provider.environment.DYNAMODB_LISTS_SHARE_TABLE}
+
+
+    UserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: service-user-pool-${sls:stage}-${self:provider.environment.DOMAIN_PREFIX}
+        UsernameAttributes:
+          - email
+        AutoVerifiedAttributes:
+          - email
+        Schema:
+          - Name: email
+            Required: true
+            Mutable: true
+          - Name: preferred_username
+            Required: true
+            Mutable: true
+
+    UserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: service-user-pool-client-${sls:stage}-${self:provider.environment.DOMAIN_PREFIX}
+        AllowedOAuthFlows:
+          - implicit
+        AllowedOAuthFlowsUserPoolClient: true
+        AllowedOAuthScopes:
+          - phone
+          - email
+          - openid
+          - profile
+          - aws.cognito.signin.user.admin
+        UserPoolId:
+          Ref: UserPool
+        CallbackURLs:
+          - https://localhost:3000
+        ExplicitAuthFlows:
+          - ALLOW_USER_SRP_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+        GenerateSecret: false
+        SupportedIdentityProviders:
+          - COGNITO
+
+    UserPoolDomain:
+      Type: AWS::Cognito::UserPoolDomain
+      Properties:
+        UserPoolId:
+          Ref: UserPool
+        Domain: service-user-pool-domain-${sls:stage}-${self:provider.environment.DOMAIN_PREFIX}
+
+  Outputs:
+    HttpApiId:
+      Value:
+        Ref: HttpApi
+      Export:
+        Name: ${self:provider.environment.DOMAIN_PREFIX}-HttpApiId
+
+    HttpApiAuthorizerId:
+      Value:
+        Ref: HttpApiAuthorizer
+      Export:
+        Name: ${self:provider.environment.DOMAIN_PREFIX}-HttpApiAuthorizerId
+
+    CognitoUserPoolId:
+      Value:
+        Ref: UserPool
+      Export:
+        Name: ${self:provider.environment.DOMAIN_PREFIX}-CognitoUserPoolId
+
+    CognitoUserPoolClientId:
+      Value:
+        Ref: UserPoolClient
+      Export:
+        Name: ${self:provider.environment.DOMAIN_PREFIX}-CognitoUserPoolClientId
+
+    ListsTableName:
+      Value:
+        Ref: ListsDynamoDbTable
+      Export:
+        Name: ${self:provider.environment.DOMAIN_PREFIX}-DynamoDbListsTable
+
+    UserToListsTableName:
+      Value:
+        Ref: UserToListsDynamoDbTable
+      Export:
+        Name: ${self:provider.environment.DOMAIN_PREFIX}-DynamoDbUserToListsTable
+
+    ListsSharingTableName:
+      Value:
+        Ref: ListsSharingDynamoDbTable
+      Export:
+        Name: ${self:provider.environment.DOMAIN_PREFIX}-DynamoDbListsSharingTable
