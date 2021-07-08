@@ -1,0 +1,49 @@
+.list-name {
+  display: flex;
+  align-items: flex-start;
+
+  .item-options-icon {
+    margin-left: auto;
+  }
+
+  &-edit {
+    display: flex;
+    margin-bottom: 1em;
+  }
+
+  .icon {
+    &:hover {
+      color: gray !important;
+    }
+
+    &:active {
+      color: black !important;
+    }
+  }
+}
+
+.item-block {
+  height: 36px;
+  display: flex;
+}
+
+span.item-name {
+  margin-left: 1em;
+}
+
+.list-item {
+  display: flex;
+
+  span.item-remove-icon {
+    margin-left: auto;
+  }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+
+  span.icon {
+    margin-right: 1rem;
+  }
+}

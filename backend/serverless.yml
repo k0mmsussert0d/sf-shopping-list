@@ -31,6 +31,7 @@ provider:
         - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_LISTS_SHARE_TABLE}/index/*"
 
   httpApi:
+    cors: true
     authorizers:
       serviceAuthorizer:
         identitySource: $request.header.Authorization
