@@ -1,0 +1,186 @@
+openapi: 3.0.3
+info:
+  title: sf-shopping-list backend API
+  description: sf-shopping-list backend API
+  version: 1.0.0
+paths:
+  /list:
+    get:
+      description: Returns all lists user is authorized to access
+      responses:
+        200:
+          description: List of lists
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/list'
+        401:
+          description: No authentication
+    post:
+      description: Create new list
+      responses:
+        201:
+          description: New list object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/list'
+        400:
+          description: Malformed request body
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+             $ref: '#/components/schemas/newList'
+  /list/{id}:
+    get:
+      description: Return a list with specific id
+      responses:
+        200:
+          description: List object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/list'
+        404:
+          description: No such list exists or user has no access to it
+    put:
+      description: Update the list
+      responses:
+        200:
+          description: Updated list object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/list'
+        400:
+          description: Malformed request body
+        403:
+          description: List found, user has access to it but is not authorized to delete it
+        404:
+          description: List not found or user is not authorized to update it
+    delete:
+      description: Delete the list
+      responses:
+        204:
+          description: List has been deleted
+        403:
+          description: List found, user has access to it but is not authorized to delete it
+        404:
+          description: List not found or user has no access to it
+    parameters:
+      - name: id
+        in: path
+        description: ID of the list
+        required: true
+        schema:
+          type: number
+          format: long
+  /list/{id}/share:
+    post:
+      description: Create invintation to the list with specific id
+      responses:
+        201:
+          description: Created invintation details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/invitation'
+        400:
+          description: Malformed request body
+        403:
+          description: List found, user has access to it but is not authorized to share it
+        404:
+          description: List not found or user is not authorized to share it
+      requestBody:
+        required: false
+        content:
+          text/plain:
+            schema:
+              type: number
+              description: Number of seconds the invitation should be valid for
+              default: 86400  # == 1 day
+    parameters:
+      - name: id
+        in: path
+        description: ID of the list
+        required: true
+        schema:
+          type: number
+          format: long
+  /s/{code}:
+    get:
+      description: Accept invitation to the list
+      responses:
+        200:
+          description: Invitation successfully accepted
+        404:
+          description: Invitation code is not valid
+
+
+components:
+  schemas:
+    list:
+      description: List object entity
+      type: object
+      properties:
+        id:
+          description: ID of a list in a shortened UUID format
+          type: string
+          format: uuid
+        userId:
+          description: User identifier of an owner of a list
+          type: string
+        listName:
+          description: Title of a list given by the owner
+          type: string
+        createdAt:
+          description: Timestamp of list creation
+          type: string
+          format: date-time
+        items:
+          description: List of list items
+          type: array
+          items:
+            type: string
+        guests:
+          description: List of other user who can access the list
+          type: array
+          items:
+            type: string
+    newList:
+      description: Newly created list object entity
+      type: object
+      properties:
+        name:
+          description: Name of the new list
+          type: string
+        items:
+          description: List of list items
+          type: array
+          items:
+            type: string
+        guests:
+          description: List of IDs of users having access to the list
+          type: array
+          items:
+            type: string
+    invitation:
+      description: Invitation object entity
+      type: object
+      properties:
+        id:
+          description: ID of an invintation in shortened UUID format
+          type: string
+          format: uuid
+        listId:
+          description: ID of a list the invintation is about
+          type: string
+          format: uuid
+        validUntil:
+          description: Invitation expiration time
+          type: string
+          format: date-time
