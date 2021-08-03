@@ -4,7 +4,7 @@ import os
 import base64
 import boto3
 from urllib import parse
-from utils import get_attribute
+from shoppinglist.utils import get_attribute
 
 
 cognito = boto3.client('cognito-idp')

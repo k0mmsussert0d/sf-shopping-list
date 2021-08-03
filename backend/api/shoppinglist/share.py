@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from utils.decimalencoder import DecimalEncoder
 import base64
 
-from lists import add_or_update
+from shoppinglist.lists import add_or_update
 
 
 dynamodb = boto3.resource('dynamodb')

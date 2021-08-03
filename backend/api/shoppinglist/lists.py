@@ -7,7 +7,7 @@ import logging
 from shortuuid import ShortUUID
 import boto3
 
-from .utils import DecimalEncoder
+from shoppinglist.utils import DecimalEncoder
 
 dynamodb = boto3.resource('dynamodb')
 logger = logging.getLogger()
