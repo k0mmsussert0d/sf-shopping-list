@@ -4,7 +4,7 @@ from aws_lambda_powertools.event_handler.api_gateway import ProxyEventType
 from aws_lambda_powertools.logging import correlation_paths
 from aws_lambda_powertools.utilities.validation import envelopes
 
-from api_models import ListModel
+from sf_shopping_list.api_models import ListModel, Invitation
 from aws_utils.event_parser import resolved_event_parser
 
 logger = Logger()
@@ -18,8 +18,7 @@ def get_lists():
 
 @app.post('/list')
 @resolved_event_parser(app, ListModel, envelopes.API_GATEWAY_HTTP)
-def create_list(body):
-    json_payload = app.current_event.json_body
+def create_list(body: ListModel):
     pass
 
 
@@ -29,8 +28,8 @@ def get_list(id):
 
 
 @app.put('/list/<id>')
+@resolved_event_parser(app, ListModel, envelopes.API_GATEWAY_HTTP)
 def update_list(id, body):
-    json_payload = app.current_event.json_body
     pass
 
 
@@ -40,8 +39,8 @@ def delete_list(id):
 
 
 @app.post('/list/<id>/share')
-def share_list(id, body):
-    json_payload = app.current_event.json_body
+@resolved_event_parser(app, Invitation, envelopes.API_GATEWAY_HTTP)
+def share_list(id, body: Invitation):
     pass
 
 
