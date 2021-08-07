@@ -85,21 +85,6 @@ functions:
           path: /s/{code}
           authorizer: ${self:custom.resources.authorizer}
 
-  getProfileInfo:
-    handler: shoppinglist.user.get
-    events:
-      - httpApi:
-            method: GET
-            path: /user
-            authorizer: ${self:custom.resources.authorizer}
-  updateUserAvatar:
-    handler: shoppinglist.user.update_avatar
-    events:
-      - httpApi:
-            method: POST
-            path: /user/avatar
-            authorizer: ${self:custom.resources.authorizer}
-
 package:
   exclude:
     - node_modules/**
