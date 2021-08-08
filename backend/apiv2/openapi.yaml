@@ -130,7 +130,6 @@ components:
         id:
           description: ID of a list in a shortened UUID format
           type: string
-          format: uuid
         userId:
           description: User identifier of an owner of a list
           type: string
