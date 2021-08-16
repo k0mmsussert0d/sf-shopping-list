@@ -10,4 +10,7 @@ class ListMappers:
 
     @staticmethod
     def map_dto_to_doc(dto: ListModel) -> ListDocModel:
-        return ListDocModel.parse_obj(dto)
+        return ListDocModel.parse_obj({
+            **dto.dict(),
+            'createdAt': int(dto.createdAt.timestamp())
+        })

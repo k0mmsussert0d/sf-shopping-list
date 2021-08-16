@@ -14,7 +14,7 @@ class Lists(BaseDataAccessClass):
                 'id': id
             }
         )
-        if res['Item']:
+        if 'Item' in res:
             return ListDocModel.from_db_doc(res['Item'])
         return None
 

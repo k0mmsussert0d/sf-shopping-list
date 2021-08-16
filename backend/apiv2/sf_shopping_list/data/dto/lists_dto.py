@@ -15,7 +15,7 @@ class ListsDto(BaseDtoClass):
         if list_doc is None:
             return None
 
-        if list_doc.userId != user_sub or user_sub not in list_doc.guests:
+        if list_doc.userId != user_sub and user_sub not in list_doc.guests:
             raise NoAccessError('User has no access to view this list')
 
         return ListMappers.map_doc_to_dto(list_doc)

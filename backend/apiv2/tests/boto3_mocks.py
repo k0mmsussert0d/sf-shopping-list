@@ -22,11 +22,9 @@ def dynamodb(aws_credentials):
 
 @pytest.fixture(scope='function')
 def dynamodb_lists_table(dynamodb, sls_shared_stack):
-    table_resource = sls_shared_stack['resources']['Resources']['ListsDynamoDbTable']
-    dynamodb.create_table(
-        TableName=os.environ['DYNAMODB_MAIN_TABLE'],
-        **table_resource
-    )
+    table_resource = sls_shared_stack['resources']['Resources']['ListsDynamoDbTable']['Properties']
+    table_resource['TableName'] = os.environ['DYNAMODB_MAIN_TABLE']
+    dynamodb.create_table(**table_resource)
     yield
     dynamodb.delete_table(
         TableName=os.environ['DYNAMODB_MAIN_TABLE']
