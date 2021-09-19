@@ -8,3 +8,13 @@ lists:
       - 'item1'
       - 'item2'
     guests: []
+  - id: 'ABCdeg'
+    userId: '1d564127-9f04-47d4-a60c-61e4b8b6cf83'
+    listName: 'sample list 2'
+    createdAt: 1629152063
+    items:
+      - 'item0'
+      - 'item1'
+      - 'item2'
+    guests:
+      - '1d564127-9f04-47d4-a60c-61e4b8b6cf74'
