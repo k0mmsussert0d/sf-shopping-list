@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 from sf_shopping_list.api_models import ListModel
 from sf_shopping_list.data.db.lists import Lists
@@ -19,3 +19,7 @@ class ListsDto(BaseDtoClass):
             raise NoAccessError('User has no access to view this list')
 
         return ListMappers.map_doc_to_dto(list_doc)
+
+    @staticmethod
+    def get_all(user_sub: str) -> List[ListModel]:
+        return [ListMappers.map_doc_to_dto(d) for d in Lists.get_all(user_sub)]

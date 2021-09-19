@@ -1,7 +1,7 @@
-from typing import Optional
+from typing import Optional, List
 
+from sf_shopping_list.data.clients.dynamodb import lists_table, user_to_lists_table
 from sf_shopping_list.data.db.base_data import BaseDataAccessClass
-from sf_shopping_list.data.clients.dynamodb import lists_table
 from sf_shopping_list.data.model.list_doc import ListDocModel
 
 
@@ -17,6 +17,16 @@ class Lists(BaseDataAccessClass):
         if 'Item' in res:
             return ListDocModel.from_db_doc(res['Item'])
         return None
+
+    @staticmethod
+    def get_all(user_sub: str) -> List[ListDocModel]:
+        res = user_to_lists_table().get_item(
+            Key={
+                'user_id': user_sub
+            }
+        )
+
+        return sorted([Lists.get(id) for id in res['Item']['lists']], key=lambda l: l.createdAt, reverse=True)
 
     @staticmethod
     def save(lists: ListDocModel) -> None:

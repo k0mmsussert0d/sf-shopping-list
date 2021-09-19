@@ -29,3 +29,14 @@ def dynamodb_lists_table(dynamodb, sls_shared_stack):
     dynamodb.delete_table(
         TableName=os.environ['DYNAMODB_MAIN_TABLE']
     )
+
+
+@pytest.fixture(scope='function')
+def dynamodb_user_to_lists_table(dynamodb, sls_shared_stack):
+    table_resource = sls_shared_stack['resources']['Resources']['UserToListsDynamoDbTable']['Properties']
+    table_resource['TableName'] = os.environ['DYNAMODB_USER_TO_LISTS_TABLE']
+    dynamodb.create_table(**table_resource)
+    yield
+    dynamodb.delete_table(
+        TableName=os.environ['DYNAMODB_USER_TO_LISTS_TABLE']
+    )

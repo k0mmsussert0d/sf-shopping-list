@@ -18,7 +18,8 @@ def _load_yaml(path):
 @pytest.fixture(autouse=True, scope='session')
 def mock_env_vars():
     with mock.patch.dict(os.environ, {
-        'DYNAMODB_MAIN_TABLE': 'ListsTable'
+        'DYNAMODB_MAIN_TABLE': 'ListsTable',
+        'DYNAMODB_USER_TO_LISTS_TABLE': 'UserToListsTable',
     }):
         yield
 

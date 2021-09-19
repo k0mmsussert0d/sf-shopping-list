@@ -11,3 +11,7 @@ def dynamodb() -> DynamoDBServiceResource:
 
 def lists_table() -> Table:
     return dynamodb().Table(Consts.LISTS_TABLE)
+
+
+def user_to_lists_table() -> Table:
+    return dynamodb().Table(Consts.USER_TO_LISTS_TABLE)
