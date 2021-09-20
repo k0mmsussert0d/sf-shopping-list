@@ -2,6 +2,7 @@ from typing import Optional, List
 
 from sf_shopping_list.data.clients.dynamodb import lists_table, user_to_lists_table
 from sf_shopping_list.data.db.base_data import BaseDataAccessClass
+from sf_shopping_list.data.db.user_to_lists import UserToLists
 from sf_shopping_list.data.model.list_doc import ListDocModel
 
 
@@ -30,6 +31,11 @@ class Lists(BaseDataAccessClass):
 
     @staticmethod
     def save(lists: ListDocModel) -> None:
+        # TODO: execute in transaction
         lists_table().put_item(
             Item=lists.dict(),
         )
+
+        UserToLists.add_list(lists.userId, lists.id)
+        for guest_id in lists.guests:
+            UserToLists.add_list(guest_id, lists.id)

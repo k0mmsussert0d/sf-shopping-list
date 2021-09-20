@@ -1,5 +1,10 @@
+from datetime import datetime
+from unittest.mock import patch, MagicMock
+
 import pytest
 
+from sf_shopping_list.api_models import NewList
+from sf_shopping_list.data.model.list_doc import ListDocModel
 from sf_shopping_list.utils.errors import NoAccessError
 from sf_shopping_list.utils.mappers.list_mappers import ListMappers
 
@@ -65,7 +70,7 @@ def test_lists_dto_get_all__if_user_has_no_lists__then_return_empty_list(
         sample_data
 ):
     from sf_shopping_list.data.dto.lists_dto import ListsDto
-    from sf_shopping_list.data.clients.dynamodb import lists_table, user_to_lists_table
+    from sf_shopping_list.data.clients.dynamodb import user_to_lists_table
 
     user_to_lists_table().put_item(
         Item={
@@ -154,3 +159,83 @@ def test_lists_dto_get_all__if_user_owns_lists_and_has_guest_access_to_list__the
     assert len(res) == 2
     assert ListMappers.map_dto_to_doc(res[0]) == list1
     assert ListMappers.map_dto_to_doc(res[1]) == list0
+
+
+added_time = datetime.utcfromtimestamp(1632167964.0)
+added_id = 'ABCdef'
+
+
+@patch('shortuuid.ShortUUID.random', MagicMock(return_value=added_id))
+def test_lists_dto_add__when_new_list_is_added__then_update_dynamodb__and_return_saved_object(
+        dynamodb_lists_table,
+        dynamodb_user_to_lists_table,
+        sample_data
+):
+    from sf_shopping_list.data.dto.lists_dto import ListsDto
+    from sf_shopping_list.data.clients.dynamodb import lists_table, user_to_lists_table
+
+    guest_user_id = 'guest1_id'
+
+    # initialize user_to_lists entries for owner and guest
+    user_to_lists_table().put_item(
+        Item={
+            'user_id': tested_user_id,
+            'lists': [],
+        }
+    )
+    user_to_lists_table().put_item(
+        Item={
+            'user_id': guest_user_id,
+            'lists': []
+        }
+    )
+
+    # add new list
+    new_list = NewList(
+        name='new sample list',
+        items=[
+            'item0',
+            'item1',
+            'item2',
+        ],
+        guests=[guest_user_id]
+    )
+
+    with patch('sf_shopping_list.data.dto.lists_dto.datetime', spec=datetime) as mock_date:
+        mock_date.utcnow.return_value = added_time
+        res = ListsDto.add(new_list, tested_user_id)
+
+    # assert returned object has all fields filled correctly
+    assert res.id == added_id
+    assert res.userId == tested_user_id
+    assert res.createdAt == added_time
+    assert res.guests == new_list.guests
+    assert res.items == new_list.items
+    assert res.listName == new_list.name
+
+    # assert returned object has been persisted
+    saved_list = lists_table().get_item(
+        Key={
+            'id': added_id
+        }
+    )
+    assert saved_list['Item'] is not None
+    assert ListMappers.map_doc_to_dto(ListDocModel.from_db_doc(saved_list['Item'])) == res
+
+    # assert owner user_to_lists entry has been updated with new list
+    owner_lists = user_to_lists_table().get_item(
+        Key={
+            'user_id': tested_user_id
+        }
+    )
+    assert owner_lists['Item'] is not None
+    assert added_id in owner_lists['Item']['lists']
+
+    # assert guest user_to_lists entry has been updated with new list
+    guest_lists = user_to_lists_table().get_item(
+        Key={
+            'user_id': guest_user_id
+        }
+    )
+    assert guest_lists['Item'] is not None
+    assert added_id in owner_lists['Item']['lists']
