@@ -28,7 +28,7 @@ class ListsDto(BaseDtoClass):
         return [ListMappers.map_doc_to_dto(d) for d in Lists.get_all(user_sub)]
 
     @staticmethod
-    def add(new_list_dto: NewList, user_sub: str) -> ListModel:
+    def create(new_list_dto: NewList, user_sub: str) -> ListModel:
         list_dto = ListModel(
             id=ShortUUID.random(length=6),
             userId=user_sub,
@@ -39,3 +39,4 @@ class ListsDto(BaseDtoClass):
         )
         Lists.save(ListMappers.map_dto_to_doc(list_dto))
         return list_dto
+

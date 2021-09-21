@@ -203,7 +203,7 @@ def test_lists_dto_add__when_new_list_is_added__then_update_dynamodb__and_return
 
     with patch('sf_shopping_list.data.dto.lists_dto.datetime', spec=datetime) as mock_date:
         mock_date.utcnow.return_value = added_time
-        res = ListsDto.add(new_list, tested_user_id)
+        res = ListsDto.create(new_list, tested_user_id)
 
     # assert returned object has all fields filled correctly
     assert res.id == added_id
