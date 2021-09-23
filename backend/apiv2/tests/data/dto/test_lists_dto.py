@@ -5,7 +5,7 @@ import pytest
 
 from sf_shopping_list.api_models import NewList
 from sf_shopping_list.data.model.list_doc import ListDocModel
-from sf_shopping_list.utils.errors import NoAccessError
+from sf_shopping_list.utils.errors import NoAccessError, NotFoundError
 from sf_shopping_list.utils.mappers.list_mappers import ListMappers
 
 
@@ -27,7 +27,7 @@ def test_lists_dto_get__if_list_exists__and_user_is_the_owner__return_the_list(d
     )
 
     res = ListsDto.get(list0['id'], list0['userId'])
-    assert ListMappers.map_dto_to_doc(res) == list0
+    assert ListMappers.map_dto_to_doc(res) == ListDocModel.from_db_doc(list0)
 
 
 def test_lists_dto_get__if_list_exists__and_user_is_in_guests_list__return_the_list(dynamodb_lists_table, sample_data):
@@ -41,7 +41,7 @@ def test_lists_dto_get__if_list_exists__and_user_is_in_guests_list__return_the_l
     )
 
     res = ListsDto.get(list1['id'], list1['guests'][0])
-    assert ListMappers.map_dto_to_doc(res) == list1
+    assert ListMappers.map_dto_to_doc(res) == ListDocModel.from_db_doc(list1)
 
 
 def test_lists_dto_get__if_list_exists__and_user_is_not_an_owner__and_user_is_not_in_guests_list__raise_no_access_error(
@@ -104,7 +104,7 @@ def test_lists_dto_get_all__if_user_owns_the_list__then_return_the_list(
 
     res = ListsDto.get_all(tested_user_id)
     assert len(res) == 1
-    assert ListMappers.map_dto_to_doc(res[0]) == list0
+    assert ListMappers.map_dto_to_doc(res[0]) == ListDocModel.from_db_doc(list0)
 
 
 def test_lists_dto_get_all__if_user_has_guest_access_to_the_list__then_return_the_list(
@@ -128,7 +128,7 @@ def test_lists_dto_get_all__if_user_has_guest_access_to_the_list__then_return_th
 
     res = ListsDto.get_all(tested_user_id)
     assert len(res) == 1
-    assert ListMappers.map_dto_to_doc(res[0]) == list1
+    assert ListMappers.map_dto_to_doc(res[0]) == ListDocModel.from_db_doc(list1)
 
 
 def test_lists_dto_get_all__if_user_owns_lists_and_has_guest_access_to_list__then_return_list_of_the_lists_sorted_from_old_to_new(
@@ -157,8 +157,8 @@ def test_lists_dto_get_all__if_user_owns_lists_and_has_guest_access_to_list__the
 
     res = ListsDto.get_all(tested_user_id)
     assert len(res) == 2
-    assert ListMappers.map_dto_to_doc(res[0]) == list1
-    assert ListMappers.map_dto_to_doc(res[1]) == list0
+    assert ListMappers.map_dto_to_doc(res[0]) == ListDocModel.from_db_doc(list1)
+    assert ListMappers.map_dto_to_doc(res[1]) == ListDocModel.from_db_doc(list0)
 
 
 added_time = datetime.utcfromtimestamp(1632167964.0)
@@ -239,3 +239,79 @@ def test_lists_dto_add__when_new_list_is_added__then_update_dynamodb__and_return
     )
     assert guest_lists['Item'] is not None
     assert added_id in owner_lists['Item']['lists']
+
+
+def test_lists_dto_add_item__when_list_does_not_exist__raise_not_found_error(
+        dynamodb_lists_table
+):
+    from sf_shopping_list.data.dto.lists_dto import ListsDto
+
+    with pytest.raises(NotFoundError):
+        ListsDto.add_item('abcdef', 'new item', tested_user_id)
+
+
+def test_lists_dto_add_item__when_user_has_no_access__raise_unauthorized_error(
+        dynamodb_lists_table,
+        sample_data
+):
+    from sf_shopping_list.data.dto.lists_dto import ListsDto
+
+    list0 = sample_data['lists'][0]
+    list0['owner'] = 'other_sub_id'
+
+    dynamodb_lists_table.put_item(
+        Item=list0
+    )
+
+    with pytest.raises(NoAccessError):
+        ListsDto.add_item(list0['id'], 'new item', tested_user_id)
+
+
+def test_lists_dto_add_item__when_user_is_owner__update_the_list(
+        dynamodb_lists_table,
+        sample_data
+):
+    from sf_shopping_list.data.dto.lists_dto import ListsDto
+
+    list0 = sample_data['lists'][0]
+    dynamodb_lists_table().put_item(
+        Item=list0
+    )
+    list_id = list0['id']
+
+    new_item = 'new item'
+    res = ListsDto.add_item(list_id, new_item, tested_user_id)
+
+    res_saved = dynamodb_lists_table().get_item(
+        Key={
+            'id': list_id
+        }
+    )
+
+    assert new_item in res
+    assert new_item in res_saved
+
+
+def test_lists_dto_add_item__when_user_is_guest__update_the_list(
+        dynamodb_lists_table,
+        sample_data
+):
+    from sf_shopping_list.data.dto.lists_dto import ListsDto
+
+    list1 = sample_data['lists'][1]
+    dynamodb_lists_table().put_item(
+        Item=list1
+    )
+    list_id = list1['id']
+
+    new_item = 'new item'
+    res = ListsDto.add_item(list_id, new_item, tested_user_id)
+
+    res_saved = dynamodb_lists_table.get_item(
+        Key={
+            'id': list_id
+        }
+    )
+
+    assert new_item in res
+    assert new_item in res_saved

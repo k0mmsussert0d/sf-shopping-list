@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Set
 
 from sf_shopping_list.data.model.base_model import BaseModel
 
@@ -9,4 +9,4 @@ class ListDocModel(BaseModel):
     listName: str
     createdAt: int
     items: List[str]
-    guests: List[str]
+    guests: Set[str]
