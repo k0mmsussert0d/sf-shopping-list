@@ -319,3 +319,80 @@ def test_lists_dto_add_item__when_user_is_guest__update_the_list(
 
     assert new_item in res
     assert new_item in res_saved['Item']['items']
+
+
+def test_lists_dto_remove_item__when_list_does_not_exist__raise_not_found_error(
+        dynamodb_lists_table
+):
+    from sf_shopping_list.data.dto.lists_dto import ListsDto
+
+    with pytest.raises(NotFoundError):
+        ListsDto.remove_item('abcdef', 0, tested_user_id)
+
+
+def test_lists_dto_remove_item__when_user_has_no_access__raise_not_found_error(
+        dynamodb_lists_table,
+        sample_data
+):
+    from sf_shopping_list.data.dto.lists_dto import ListsDto
+    from sf_shopping_list.data.clients.dynamodb import lists_table
+
+    list0 = copy.deepcopy(sample_data['lists'][0])
+    list0['userId'] = 'other_sub_id'
+
+    lists_table().put_item(
+        Item=list0
+    )
+
+    with pytest.raises(NotFoundError):
+        ListsDto.remove_item(list0['id'], 0, tested_user_id)
+
+
+def test_lists_dto_remove_item__when_user_is_owner__update_the_list(
+        dynamodb_lists_table,
+        sample_data
+):
+    from sf_shopping_list.data.dto.lists_dto import ListsDto
+    from sf_shopping_list.data.clients.dynamodb import lists_table
+
+    list0 = sample_data['lists'][0]
+    lists_table().put_item(
+        Item=list0
+    )
+    list_id = list0['id']
+    item = list0['items'][0]
+    res = ListsDto.remove_item(list_id, 0, tested_user_id)
+
+    res_saved = lists_table().get_item(
+        Key={
+            'id': list_id
+        }
+    )
+
+    assert item not in res
+    assert item not in res_saved['Item']['items']
+
+
+def test_lists_dto_remove_item__when_user_is_guest__update_the_list(
+        dynamodb_lists_table,
+        sample_data
+):
+    from sf_shopping_list.data.dto.lists_dto import ListsDto
+    from sf_shopping_list.data.clients.dynamodb import lists_table
+
+    list1 = sample_data['lists'][1]
+    lists_table().put_item(
+        Item=list1
+    )
+    list_id = list1['id']
+    item = list1['items'][0]
+    res = ListsDto.remove_item(list_id, 0, tested_user_id)
+
+    res_saved = lists_table().get_item(
+        Key={
+            'id': list_id
+        }
+    )
+
+    assert item not in res
+    assert item not in res_saved['Item']['items']

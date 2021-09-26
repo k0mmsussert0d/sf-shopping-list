@@ -44,7 +44,7 @@ class Lists(BaseDataAccessClass):
             UserToLists.add_list(guest_id, lists.id)
 
     @staticmethod
-    def append_items(id: str, items: List[str], user_id: str) -> Optional[List[str]]:
+    def append_items(id: str, items: List[str], user_id: str) -> List[str]:
         try:
             res = lists_table().update_item(
                 Key={
@@ -59,6 +59,34 @@ class Lists(BaseDataAccessClass):
                 },
                 ExpressionAttributeValues={
                     ':vals': items,
+                    ':userid': user_id
+                },
+                ReturnValues='UPDATED_NEW'
+            )
+
+            if res:
+                return res['Attributes']['items']
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
+                raise NotFoundError('User is not authorized to modify this list or it does not exist')
+            else:
+                raise e
+
+    @staticmethod
+    def remove_items(id: str, indices: List[int], user_id: str) -> List[str]:
+        try:
+            res = lists_table().update_item(
+                Key={
+                    'id': id
+                },
+                UpdateExpression='REMOVE ' + ' '.join([f'#i[{i}]' for i in indices]),
+                ConditionExpression='#u = :userid Or contains(#g, :userid)',
+                ExpressionAttributeNames={
+                    '#i': 'items',
+                    '#u': 'userId',
+                    '#g': 'guests'
+                },
+                ExpressionAttributeValues={
                     ':userid': user_id
                 },
                 ReturnValues='UPDATED_NEW'
