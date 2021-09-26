@@ -1,9 +1,12 @@
 from typing import Optional, List
 
+from botocore.exceptions import ClientError
+
 from sf_shopping_list.data.clients.dynamodb import lists_table, user_to_lists_table
 from sf_shopping_list.data.db.base_data import BaseDataAccessClass
 from sf_shopping_list.data.db.user_to_lists import UserToLists
 from sf_shopping_list.data.model.list_doc import ListDocModel
+from sf_shopping_list.utils.errors import NotFoundError
 
 
 class Lists(BaseDataAccessClass):
@@ -39,3 +42,32 @@ class Lists(BaseDataAccessClass):
         UserToLists.add_list(lists.userId, lists.id)
         for guest_id in lists.guests:
             UserToLists.add_list(guest_id, lists.id)
+
+    @staticmethod
+    def append_items(id: str, items: List[str], user_id: str) -> Optional[List[str]]:
+        try:
+            res = lists_table().update_item(
+                Key={
+                    'id': id
+                },
+                UpdateExpression='SET #i = list_append(#i, :vals)',
+                ConditionExpression='#u = :userid Or contains(#g, :userid)',
+                ExpressionAttributeNames={
+                    '#i': 'items',
+                    '#u': 'userId',
+                    '#g': 'guests'
+                },
+                ExpressionAttributeValues={
+                    ':vals': items,
+                    ':userid': user_id
+                },
+                ReturnValues='UPDATED_NEW'
+            )
+
+            if res:
+                return res['Attributes']['items']
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
+                raise NotFoundError('User is not authorized to modify this list or it does not exist')
+            else:
+                raise e

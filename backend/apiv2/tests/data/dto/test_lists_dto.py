@@ -1,3 +1,4 @@
+import copy
 from datetime import datetime
 from unittest.mock import patch, MagicMock
 
@@ -255,15 +256,16 @@ def test_lists_dto_add_item__when_user_has_no_access__raise_unauthorized_error(
         sample_data
 ):
     from sf_shopping_list.data.dto.lists_dto import ListsDto
+    from sf_shopping_list.data.clients.dynamodb import lists_table
 
-    list0 = sample_data['lists'][0]
-    list0['owner'] = 'other_sub_id'
+    list0 = copy.deepcopy(sample_data['lists'][0])
+    list0['userId'] = 'other_sub_id'
 
-    dynamodb_lists_table.put_item(
+    lists_table().put_item(
         Item=list0
     )
 
-    with pytest.raises(NoAccessError):
+    with pytest.raises(NotFoundError):
         ListsDto.add_item(list0['id'], 'new item', tested_user_id)
 
 
@@ -272,9 +274,10 @@ def test_lists_dto_add_item__when_user_is_owner__update_the_list(
         sample_data
 ):
     from sf_shopping_list.data.dto.lists_dto import ListsDto
+    from sf_shopping_list.data.clients.dynamodb import lists_table
 
     list0 = sample_data['lists'][0]
-    dynamodb_lists_table().put_item(
+    lists_table().put_item(
         Item=list0
     )
     list_id = list0['id']
@@ -282,14 +285,14 @@ def test_lists_dto_add_item__when_user_is_owner__update_the_list(
     new_item = 'new item'
     res = ListsDto.add_item(list_id, new_item, tested_user_id)
 
-    res_saved = dynamodb_lists_table().get_item(
+    res_saved = lists_table().get_item(
         Key={
             'id': list_id
         }
     )
 
     assert new_item in res
-    assert new_item in res_saved
+    assert new_item in res_saved['Item']['items']
 
 
 def test_lists_dto_add_item__when_user_is_guest__update_the_list(
@@ -297,9 +300,10 @@ def test_lists_dto_add_item__when_user_is_guest__update_the_list(
         sample_data
 ):
     from sf_shopping_list.data.dto.lists_dto import ListsDto
+    from sf_shopping_list.data.clients.dynamodb import lists_table
 
     list1 = sample_data['lists'][1]
-    dynamodb_lists_table().put_item(
+    lists_table().put_item(
         Item=list1
     )
     list_id = list1['id']
@@ -307,11 +311,11 @@ def test_lists_dto_add_item__when_user_is_guest__update_the_list(
     new_item = 'new item'
     res = ListsDto.add_item(list_id, new_item, tested_user_id)
 
-    res_saved = dynamodb_lists_table.get_item(
+    res_saved = lists_table().get_item(
         Key={
             'id': list_id
         }
     )
 
     assert new_item in res
-    assert new_item in res_saved
+    assert new_item in res_saved['Item']['items']

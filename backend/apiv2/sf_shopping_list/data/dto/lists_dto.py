@@ -18,7 +18,7 @@ class ListsDto(BaseDtoClass):
         if list_doc is None:
             return None
 
-        if list_doc.userId != user_sub and user_sub not in list_doc.guests:
+        if not ListsDto._user_has_access_to_list(list_doc, user_sub):
             raise NoAccessError('User has no access to view this list')
 
         return ListMappers.map_doc_to_dto(list_doc)
@@ -39,4 +39,12 @@ class ListsDto(BaseDtoClass):
         )
         Lists.save(ListMappers.map_dto_to_doc(list_dto))
         return list_dto
+
+    @staticmethod
+    def add_item(id: str, new_item: str, user_sub: str) -> List[str]:
+        return Lists.append_items(id, [new_item], user_sub)
+
+    @staticmethod
+    def _user_has_access_to_list(list_doc, user_sub):
+        return list_doc.userId == user_sub or user_sub in list_doc.guests
 
