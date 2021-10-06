@@ -49,6 +49,10 @@ class ListsDto(BaseDtoClass):
         return Lists.remove_items(id, [item_idx], user_sub)
 
     @staticmethod
+    def update_items(id: str, items: List[str], user_sub: str) -> List[str]:
+        return Lists.update_items(id, items, user_sub)
+
+    @staticmethod
     def _user_has_access_to_list(list_doc, user_sub):
         return list_doc.userId == user_sub or user_sub in list_doc.guests
 

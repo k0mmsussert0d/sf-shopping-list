@@ -99,3 +99,32 @@ class Lists(BaseDataAccessClass):
                 raise NotFoundError('User is not authorized to modify this list or it does not exist')
             else:
                 raise e
+
+    @staticmethod
+    def update_items(id: str, items: List[str], user_id: str) -> List[str]:
+        try:
+            res = lists_table().update_item(
+                Key={
+                    'id': id
+                },
+                UpdateExpression='SET #i = :i',
+                ConditionExpression='#u = :userid Or contains(#g, :userid)',
+                ExpressionAttributeNames={
+                    '#i': 'items',
+                    '#u': 'userId',
+                    '#g': 'guests'
+                },
+                ExpressionAttributeValues={
+                    ':i': items,
+                    ':userid': user_id
+                },
+                ReturnValues='UPDATED_NEW'
+            )
+
+            if res:
+                return res['Attributes']['items']
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
+                raise NotFoundError('User is not authorized to modify this list or it does not exist')
+            else:
+                raise e

@@ -396,3 +396,82 @@ def test_lists_dto_remove_item__when_user_is_guest__update_the_list(
 
     assert item not in res
     assert item not in res_saved['Item']['items']
+
+
+def test_lists_dto_update_items__when_list_does_not_exist__raise_not_found_error(
+        dynamodb_lists_table
+):
+    from sf_shopping_list.data.dto.lists_dto import ListsDto
+
+    with pytest.raises(NotFoundError):
+        ListsDto.update_items('abcdef', ['item0', 'item1'], tested_user_id)
+
+
+def test_lists_dto_update_items__when_user_has_no_access__raise_not_found_error(
+        dynamodb_lists_table,
+        sample_data
+):
+    from sf_shopping_list.data.dto.lists_dto import ListsDto
+    from sf_shopping_list.data.clients.dynamodb import lists_table
+
+    list0 = copy.deepcopy(sample_data['lists'][0])
+    list0['userId'] = 'other_user_id'
+
+    lists_table().put_item(
+        Item=list0
+    )
+
+    with pytest.raises(NotFoundError):
+        ListsDto.update_items(list0['id'], ['item0', 'item1'], tested_user_id)
+
+
+def test_lists_dto_update_items__when_user_is_owner__update_the_list(
+        dynamodb_lists_table,
+        sample_data
+):
+    from sf_shopping_list.data.dto.lists_dto import ListsDto
+    from sf_shopping_list.data.clients.dynamodb import lists_table
+
+    list0 = sample_data['lists'][0]
+    lists_table().put_item(
+        Item=list0
+    )
+    list_id = list0['id']
+    new_items = ['item3', 'item4']
+
+    res = ListsDto.update_items(list_id, new_items, tested_user_id)
+
+    res_saved = lists_table().get_item(
+        Key={
+            'id': list_id
+        }
+    )
+
+    assert res == new_items
+    assert res_saved['Item']['items'] == new_items
+
+
+def test_lists_dto_update_items__when_user_is_guests__update_the_list(
+        dynamodb_lists_table,
+        sample_data
+):
+    from sf_shopping_list.data.dto.lists_dto import ListsDto
+    from sf_shopping_list.data.clients.dynamodb import lists_table
+
+    list1 = sample_data['lists'][1]
+    lists_table().put_item(
+        Item=list1
+    )
+    list_id = list1['id']
+    new_items = ['item3', 'item4']
+
+    res = ListsDto.update_items(list_id, new_items, tested_user_id)
+
+    res_saved = lists_table().get_item(
+        Key={
+            'id': list_id
+        }
+    )
+
+    assert res == new_items
+    assert res_saved['Item']['items'] == new_items
