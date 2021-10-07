@@ -79,6 +79,47 @@ paths:
         schema:
           type: number
           format: long
+  /list/{id}/item:
+    post:
+      description: Append new item to the items list
+      responses:
+        201:
+          description: Updated list of items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        404:
+          description: List not found or user is not authorized to modify it
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              description: New item to be added
+    delete:
+      description: Delete an item at given index
+      responses:
+        200:
+          description: List of items after operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        404:
+          description: List not found or user is not authorized to modify it
+      parameters:
+        - name: idx
+          in: query
+          required: true
+          description: Index of an item in the list to be deleted
+          schema:
+            type: integer
   /list/{id}/share:
     post:
       description: Create invintation to the list with specific id
