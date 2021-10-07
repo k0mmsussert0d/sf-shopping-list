@@ -45,6 +45,10 @@ class ListsDto(BaseDtoClass):
         return Lists.append_items(id, [new_item], user_sub)
 
     @staticmethod
+    def update_item(id: str, item_idx: int, new_item: str, user_sub: str) -> List[str]:
+        return Lists.update_item(id, item_idx, new_item, user_sub)
+
+    @staticmethod
     def remove_item(id: str, item_idx: int, user_sub: str) -> List[str]:
         return Lists.remove_items(id, [item_idx], user_sub)
 
