@@ -62,7 +62,7 @@ class Lists(BaseDataAccessClass):
             )
 
             if res:
-                return res['Attributes']['items']
+                return list(res['Attributes']['items'])
 
     @staticmethod
     def update_item(id: str, idx: int, new_item: str, user_id: str) -> List[str]:
@@ -86,7 +86,7 @@ class Lists(BaseDataAccessClass):
             )
 
             if res:
-                return res['Attributes']['items']
+                return list(res['Attributes']['items'])
 
     @staticmethod
     def remove_items(id: str, indices: List[int], user_id: str) -> List[str]:
@@ -109,7 +109,7 @@ class Lists(BaseDataAccessClass):
             )
 
             if res:
-                return res['Attributes']['items']
+                return list(res['Attributes']['items'])
 
     @staticmethod
     def update_items(id: str, items: List[str], user_id: str) -> List[str]:
@@ -133,6 +133,4 @@ class Lists(BaseDataAccessClass):
             )
 
             if res:
-                return res['Attributes']['items']
-
-
+                return list(res['Attributes']['items'])
