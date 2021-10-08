@@ -6,7 +6,7 @@ authors = ["Maksymilian Babarowski <maksymilian.babarowski@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-aws-lambda-powertools = "^1.18.1"
+aws-lambda-powertools = "^1.21.1"
 orjson = "^3.6.1"
 boto3 = "^1.18.16"
 shortuuid = "^1.0.1"
