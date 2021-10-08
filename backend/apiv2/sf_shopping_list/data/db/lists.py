@@ -1,12 +1,9 @@
 from typing import Optional, List
 
-from botocore.exceptions import ClientError
-
 from sf_shopping_list.data.clients.dynamodb import lists_table, user_to_lists_table
 from sf_shopping_list.data.db.base_data import BaseDataAccessClass
 from sf_shopping_list.data.db.user_to_lists import UserToLists
 from sf_shopping_list.data.model.list_doc import ListDocModel
-from sf_shopping_list.utils.errors import NotFoundError
 
 
 class Lists(BaseDataAccessClass):
@@ -45,7 +42,7 @@ class Lists(BaseDataAccessClass):
 
     @staticmethod
     def append_items(id: str, items: List[str], user_id: str) -> List[str]:
-        try:
+        with Lists._handle_conditional_check_fail():
             res = lists_table().update_item(
                 Key={
                     'id': id
@@ -66,15 +63,10 @@ class Lists(BaseDataAccessClass):
 
             if res:
                 return res['Attributes']['items']
-        except ClientError as e:
-            if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
-                raise NotFoundError('User is not authorized to modify this list or it does not exist')
-            else:
-                raise e
 
     @staticmethod
     def update_item(id: str, idx: int, new_item: str, user_id: str) -> List[str]:
-        try:
+        with Lists._handle_conditional_check_fail():
             res = lists_table().update_item(
                 Key={
                     'id': id
@@ -95,15 +87,10 @@ class Lists(BaseDataAccessClass):
 
             if res:
                 return res['Attributes']['items']
-        except ClientError as e:
-            if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
-                raise NotFoundError('User is not authorized to modify this list or it does not exist')
-            else:
-                raise e
 
     @staticmethod
     def remove_items(id: str, indices: List[int], user_id: str) -> List[str]:
-        try:
+        with Lists._handle_conditional_check_fail():
             res = lists_table().update_item(
                 Key={
                     'id': id
@@ -123,15 +110,10 @@ class Lists(BaseDataAccessClass):
 
             if res:
                 return res['Attributes']['items']
-        except ClientError as e:
-            if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
-                raise NotFoundError('User is not authorized to modify this list or it does not exist')
-            else:
-                raise e
 
     @staticmethod
     def update_items(id: str, items: List[str], user_id: str) -> List[str]:
-        try:
+        with Lists._handle_conditional_check_fail():
             res = lists_table().update_item(
                 Key={
                     'id': id
@@ -152,8 +134,5 @@ class Lists(BaseDataAccessClass):
 
             if res:
                 return res['Attributes']['items']
-        except ClientError as e:
-            if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
-                raise NotFoundError('User is not authorized to modify this list or it does not exist')
-            else:
-                raise e
+
+
