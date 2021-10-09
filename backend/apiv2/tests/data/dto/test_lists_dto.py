@@ -177,20 +177,6 @@ def test_lists_dto_add__when_new_list_is_added__then_update_dynamodb__and_return
 
     guest_user_id = 'guest1_id'
 
-    # initialize user_to_lists entries for owner and guest
-    user_to_lists_table().put_item(
-        Item={
-            'user_id': tested_user_id,
-            'lists': [],
-        }
-    )
-    user_to_lists_table().put_item(
-        Item={
-            'user_id': guest_user_id,
-            'lists': []
-        }
-    )
-
     # add new list
     new_list = NewList(
         name='new sample list',

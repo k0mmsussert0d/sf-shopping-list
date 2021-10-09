@@ -26,12 +26,9 @@ class UserToLists(BaseDataAccessClass):
             Key={
                 'user_id': user_sub,
             },
-            UpdateExpression='SET #l = list_append(#l, :val)',
-            ExpressionAttributeNames={
-                '#l': 'lists',
-            },
+            UpdateExpression='ADD lists :val',
             ExpressionAttributeValues={
-                ':val': [list_id]
+                ':val': {list_id}
             },
-            ReturnValues='NONE'
+            ReturnValues='ALL_NEW'
         )
