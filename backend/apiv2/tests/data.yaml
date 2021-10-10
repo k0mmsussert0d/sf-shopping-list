@@ -1,4 +1,5 @@
 lists:
+  # owned by user A, no guests
   - id: 'ABCdef'
     userId: '1d564127-9f04-47d4-a60c-61e4b8b6cf74'
     listName: 'sample list 1'
@@ -8,6 +9,7 @@ lists:
       - 'item1'
       - 'item2'
     guests: []
+  # owner by user B, guest user A
   - id: 'ABCdeg'
     userId: '1d564127-9f04-47d4-a60c-61e4b8b6cf83'
     listName: 'sample list 2'
@@ -18,3 +20,24 @@ lists:
       - 'item2'
     guests:
       - '1d564127-9f04-47d4-a60c-61e4b8b6cf74'
+  # owned by user B, no guests
+  - id: 'ABCdeh'
+    userId: '1d564127-9f04-47d4-a60c-61e4b8b6cf83'
+    listName: 'sample list 3'
+    createdAt: 1629152065
+    items:
+      - 'item0'
+      - 'item1'
+      - 'item2'
+    guests: []
+  # owned by user A, guest user B
+  - id: 'ABCdei'
+    userId: '1d564127-9f04-47d4-a60c-61e4b8b6cf74'
+    listName: 'sample list 4'
+    createdAt: 1629152066
+    items:
+      - 'item0'
+      - 'item1'
+      - 'item2'
+    guests:
+      - '1d564127-9f04-47d4-a60c-61e4b8b6cf83'
