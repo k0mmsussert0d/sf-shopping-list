@@ -31,7 +31,6 @@ class Lists(BaseDataAccessClass):
 
     @staticmethod
     def save(lists: ListDocModel) -> None:
-        # TODO: execute in transaction
         lists_table().put_item(
             Item=lists.dict(),
         )

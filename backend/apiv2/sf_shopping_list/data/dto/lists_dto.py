@@ -39,6 +39,9 @@ class ListsDto(BaseDtoClass):
             guests=new_list_dto.guests,
         )
         Lists.save(ListMappers.map_dto_to_doc(list_dto))
+        UserToLists.add_list(user_sub, list_dto.id)
+        for guest_id in new_list_dto.guests:
+            UserToLists.add_list(guest_id, list_dto.id)
         return list_dto
 
     @staticmethod
@@ -59,6 +62,10 @@ class ListsDto(BaseDtoClass):
         # update access entries for users denied access
         for non_guest in (set(curr_list.guests) - set(new_list.guests)):
             UserToLists.remove_list(non_guest, id)
+
+        # update access entries for users given access
+        for guest in new_list.guests:
+            UserToLists.add_list(guest, id)
 
         Lists.save(ListMappers.map_dto_to_doc(new_list))
         return new_list
