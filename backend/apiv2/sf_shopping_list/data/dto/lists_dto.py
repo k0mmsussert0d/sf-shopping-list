@@ -5,6 +5,7 @@ from shortuuid import ShortUUID
 
 from sf_shopping_list.api_models import ListModel, NewList
 from sf_shopping_list.data.db.lists import Lists
+from sf_shopping_list.data.db.user_to_lists import UserToLists
 from sf_shopping_list.data.dto.base_dto import BaseDtoClass
 from sf_shopping_list.utils.errors import NoAccessError
 from sf_shopping_list.utils.mappers.list_mappers import ListMappers
@@ -39,6 +40,28 @@ class ListsDto(BaseDtoClass):
         )
         Lists.save(ListMappers.map_dto_to_doc(list_dto))
         return list_dto
+
+    @staticmethod
+    def update(id: str, new_list: ListModel, user_sub: str) -> Optional[ListModel]:
+        curr_list = ListsDto.get(id, user_sub)
+        if not curr_list:
+            return None
+        else:
+            if user_sub in curr_list.guests:  # is guest, cannot modify listName and guests
+                if curr_list.listName != new_list.listName or curr_list.guests != new_list.guests:
+                    raise NoAccessError('Guest is not allowed to modify those attributes')
+
+        # rewrite immutable properties from existing item
+        new_list.id = id
+        new_list.createdAt = curr_list.createdAt
+        new_list.userId = curr_list.userId
+
+        # update access entries for users denied access
+        for non_guest in (set(curr_list.guests) - set(new_list.guests)):
+            UserToLists.remove_list(non_guest, id)
+
+        Lists.save(ListMappers.map_dto_to_doc(new_list))
+        return new_list
 
     @staticmethod
     def add_item(id: str, new_item: str, user_sub: str) -> List[str]:

@@ -29,6 +29,17 @@ class UserToLists(BaseDataAccessClass):
             UpdateExpression='ADD lists :val',
             ExpressionAttributeValues={
                 ':val': {list_id}
+            }
+        )
+
+    @staticmethod
+    def remove_list(user_sub: str, list_id: str) -> None:
+        user_to_lists_table().update_item(
+            Key={
+                'user_id': user_sub
             },
-            ReturnValues='ALL_NEW'
+            UpdateExpression='DELETE lists :val',
+            ExpressionAttributeValues={
+                ':val': {list_id}
+            }
         )

@@ -4,8 +4,9 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from sf_shopping_list.api_models import NewList
+from sf_shopping_list.api_models import NewList, ListModel
 from sf_shopping_list.data.model.list_doc import ListDocModel
+from sf_shopping_list.data.model.user_to_lists_doc import UserToListsDocModel
 from sf_shopping_list.utils.errors import NoAccessError, NotFoundError
 from sf_shopping_list.utils.mappers.list_mappers import ListMappers
 
@@ -63,6 +64,7 @@ def test_lists_dto_get__if_list_exists__and_user_is_not_an_owner__and_user_is_no
 
 
 tested_user_id = '1d564127-9f04-47d4-a60c-61e4b8b6cf74'
+other_user_id = '1d564127-9f04-47d4-a60c-61e4b8b6cf83'
 
 
 def test_lists_dto_get_all__if_user_has_no_lists__then_return_empty_list(
@@ -542,3 +544,200 @@ def test_lists_dto_update_item__when_user_is_guest__update_the_list(
 
     assert res[item_idx] == new_item
     assert res_saved['Item']['items'][item_idx] == new_item
+
+
+def test_lists_dto_update__when_list_does_not_exist__return_none(
+        dynamodb_lists_table
+):
+    from sf_shopping_list.data.dto.lists_dto import ListsDto
+
+    new_list = ListModel(
+        id='ABCdef',
+        userId=tested_user_id,
+        listName='list name',
+        createdAt=datetime.utcnow(),
+        items=['item0', 'item1'],
+        guests=[]
+    )
+
+    assert ListsDto.update('ABCdef', new_list, tested_user_id) is None
+
+
+def test_lists_dto_update__when_user_has_no_access__raise_no_access_error(
+        dynamodb_lists_table,
+        sample_data
+):
+    from sf_shopping_list.data.dto.lists_dto import ListsDto
+    from sf_shopping_list.data.clients.dynamodb import lists_table
+
+    list2 = sample_data['lists'][2]
+    lists_table().put_item(
+        Item=list2
+    )
+
+    new_list = ListModel.parse_obj(list2)
+
+    with pytest.raises(NoAccessError):
+        ListsDto.update(new_list.id, new_list, tested_user_id)
+
+
+def test_lists_dto_update__when_user_is_owner__then_update_list(
+        dynamodb_lists_table,
+        dynamodb_user_to_lists_table,
+        sample_data
+):
+    from sf_shopping_list.data.dto.lists_dto import ListsDto
+    from sf_shopping_list.data.db.lists import Lists
+    from sf_shopping_list.data.clients.dynamodb import lists_table
+    from sf_shopping_list.data.clients.dynamodb import user_to_lists_table
+
+    list0 = sample_data['lists'][0]
+    new_list0 = ListModel.parse_obj(list0)
+
+    Lists.save(ListMappers.map_dto_to_doc(new_list0))
+
+    # owner can change items, guests and listName
+    new_list0.items = [
+        'item4', 'item5', 'item6'
+    ]
+    new_list0.guests = {other_user_id}
+    new_list0.listName = 'new list name'
+    new_list0_res = ListsDto.update(new_list0.id, new_list0, new_list0.userId)
+    new_list0_saved = lists_table().get_item(
+        Key={
+            'id': new_list0.id
+        }
+    )
+
+    # updated list is returned
+    assert new_list0_res == new_list0
+
+    # updated list is saved
+    assert ListDocModel.from_db_doc(new_list0_saved['Item']) == ListMappers.map_dto_to_doc(new_list0)
+
+    # if guests were added, so their user_to_lists entries were updated
+    other_user_lists = user_to_lists_table().get_item(
+        Key={
+            'user_id': other_user_id
+        }
+    )
+
+    assert new_list0.id in UserToListsDocModel.from_db_doc(other_user_lists['Item']).lists
+
+    # try removing guest
+    new_list0.guests = set()
+    new_list0_res = ListsDto.update(new_list0.id, new_list0, new_list0.userId)
+    new_list0_saved = lists_table().get_item(
+        Key={
+            'id': new_list0.id
+        }
+    )
+
+    assert new_list0_res == new_list0
+    assert ListDocModel.from_db_doc(new_list0_saved['Item']) == ListMappers.map_dto_to_doc(new_list0)
+
+    # guests should have their user_to_lists entries updated
+    other_user_lists = user_to_lists_table().get_item(
+        Key={
+            'user_id': other_user_id
+        }
+    )
+
+    assert new_list0.id not in UserToListsDocModel.from_db_doc(other_user_lists['Item']).lists
+
+    # try adding guest back
+    new_list0.guests = {other_user_id}
+    new_list0_res = ListsDto.update(new_list0.id, new_list0, new_list0.userId)
+    new_list0_saved = lists_table().get_item(
+        Key={
+            'id': new_list0.id
+        }
+    )
+
+    assert new_list0_res == new_list0
+    assert ListDocModel.from_db_doc(new_list0_saved['Item']) == ListMappers.map_dto_to_doc(new_list0)
+
+    # guests should have their user_to_lists entries updated
+    other_user_lists = user_to_lists_table().get_item(
+        Key={
+            'user_id': other_user_id
+        }
+    )
+
+    # immutable fields changes should be ignored
+    original_new_list_0 = new_list0.copy()
+    new_list0.id = 'foo'
+    new_list0.createdAt = datetime.utcnow()
+    new_list0.userId = other_user_id
+
+    new_list0_res = ListsDto.update(original_new_list_0.id, new_list0, original_new_list_0.userId)
+    new_list_0_saved = lists_table().get_item(
+        Key={
+            'id': new_list0.id
+        }
+    )
+
+    assert new_list0_res == original_new_list_0
+    assert ListDocModel.from_db_doc(new_list_0_saved['Item']) == ListMappers.map_dto_to_doc(original_new_list_0)
+
+    assert new_list0.id in UserToListsDocModel.from_db_doc(other_user_lists['Item']).lists
+
+
+def test_lists_dto_update__when_user_is_guest__and_updates_only_items__then_update_list(
+        dynamodb_lists_table,
+        dynamodb_user_to_lists_table,
+        sample_data
+):
+    from sf_shopping_list.data.db.lists import Lists
+    from sf_shopping_list.data.dto.lists_dto import ListsDto
+    from sf_shopping_list.data.clients.dynamodb import lists_table
+
+    list1 = sample_data['lists'][1]
+    new_list1 = ListModel.parse_obj(list1)
+
+    Lists.save(ListMappers.map_dto_to_doc(new_list1))
+
+    # guest is allowed to change items
+    new_list1.items = ['item3', 'item4', 'item5']
+
+    new_list1_res = ListsDto.update(new_list1.id, new_list1, tested_user_id)
+    new_list1_saved = lists_table().get_item(
+        Key={
+            'id': new_list1.id
+        }
+    )
+
+    assert new_list1_res == new_list1
+    assert ListDocModel.from_db_doc(new_list1_saved['Item']) == ListMappers.map_dto_to_doc(new_list1)
+
+    # guest is not allowed to modify guests list or name
+    new_list1.guests += 'some_other_user_id'
+    with pytest.raises(NoAccessError):
+        ListsDto.update(new_list1.id, new_list1, tested_user_id)
+
+    new_list1.listName = 'new list name'
+    with pytest.raises(NoAccessError):
+        ListsDto.update(new_list1.id, new_list1, tested_user_id)
+
+
+def test_lists_dto_update__when_user_is_guest__and_updates_guests_or_name__then_raise_no_access_error(
+        dynamodb_lists_table,
+        dynamodb_user_to_lists_table,
+        sample_data
+):
+    from sf_shopping_list.data.db.lists import Lists
+    from sf_shopping_list.data.dto.lists_dto import ListsDto
+
+    list1 = sample_data['lists'][1]
+    new_list1 = ListModel.parse_obj(list1)
+
+    Lists.save(ListMappers.map_dto_to_doc(new_list1))
+
+    # guest is not allowed to modify guests list or name
+    new_list1.guests += 'some_other_user_id'
+    with pytest.raises(NoAccessError):
+        ListsDto.update(new_list1.id, new_list1, tested_user_id)
+
+    new_list1.listName = 'new list name'
+    with pytest.raises(NoAccessError):
+        ListsDto.update(new_list1.id, new_list1, tested_user_id)
